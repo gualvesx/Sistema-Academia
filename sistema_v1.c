@@ -6,7 +6,64 @@
 #define TF 100
 
 // ==========================================
-// 1. ESTRUTURAS DE DADOS (STRUCTS)
+// FUNCOES DE ENTRADA E VALIDACAO BASICA
+// ==========================================
+
+int lerInteiro() {
+    int valor;
+    while (scanf("%d", &valor) != 1) {
+        printf("** ENTRADA INVALIDA! Por favor, digite um numero: ");
+        fflush(stdin);
+    }
+    fflush(stdin);
+    return valor;
+}
+
+float lerFloat() {
+    float valor;
+    while (scanf("%f", &valor) != 1) {
+        printf("** ENTRADA INVALIDA! Por favor, digite um valor numerico: ");
+        fflush(stdin);
+    }
+    fflush(stdin);
+    return valor;
+}
+
+char lerOpcaoSN() {
+    char op;
+    do {
+        fflush(stdin);
+        scanf("%c", &op);
+        op = toupper(op);
+        if (op != 'S' && op != 'N') {
+            printf("** OPCAO INVALIDA! Digite 'S' para Sim ou 'N' para Nao: ");
+        }
+    } while (op != 'S' && op != 'N');
+    return op;
+}
+
+void lerCPF(char cpf[]) {
+    int valido, i;
+    do {
+        valido = 1;
+        fflush(stdin);
+        scanf("%s", cpf);
+        
+        for (i = 0; cpf[i] != '\0'; i++) {
+            if (!isdigit(cpf[i])) {
+                valido = 0;
+                break;
+            }
+        }
+        
+        if (!valido) {
+            printf("** CPF INVALIDO! Digite apenas numeros: ");
+        }
+    } while (!valido);
+}
+
+// ==========================================
+// ESTRUTURAS DE DADOS (STRUCTS)
 // ==========================================
 
 typedef struct {
@@ -15,7 +72,7 @@ typedef struct {
     char telefone[20];
     int id_pacote;
     int id_plano;
-    int status_matricula; // 1 = Ativa, 0 = Cancelada
+    int status_matricula;
 } Aluno;
 
 typedef struct {
@@ -40,7 +97,7 @@ typedef struct {
 typedef struct {
     int id;
     char nome[50];
-    char tipo; // 'M' - Mensal, 'T' - Trimestral, 'S' - Semestral, 'A' - Anual
+    char tipo;
     float valor_base;
 } Plano;
 
@@ -49,11 +106,11 @@ typedef struct {
     char cpf_aluno[15];
     int mes_referencia;
     float valor_cobrado;
-    int status_pago; // 1 = Pago, 0 = Aberto/Pendente
+    int status_pago;
 } Recebimento;
 
 // ==========================================
-// 2. FUNCOES AUXILIARES DE BUSCA E LISTAGEM
+// FUNCOES DE BUSCA E LISTAGEM
 // ==========================================
 
 int buscaAluno(Aluno Al[], int TLA, char cpf[]) {
@@ -99,9 +156,8 @@ int buscaPlano(Plano Pl[], int TLPL, int id) {
 void listarOpcoesInstrutores(Instrutor Inst[], int TLINST) {
     int i;
     printf("\n--- INSTRUTORES DISPONIVEIS ---");
-    if (TLINST == 0) {
-        printf("\n(Nenhum instrutor cadastrado)\n");
-    } else {
+    if (TLINST == 0) printf("\n(Nenhum instrutor cadastrado)\n");
+    else {
         for (i = 0; i < TLINST; i++) {
             printf("\nCPF: %s | Nome: %s | Especialidade: %s", Inst[i].cpf, Inst[i].nome, Inst[i].especialidade);
         }
@@ -112,9 +168,8 @@ void listarOpcoesInstrutores(Instrutor Inst[], int TLINST) {
 void listarOpcoesAtividades(Atividade Atv[], int TLAT) {
     int i;
     printf("\n--- ATIVIDADES DISPONIVEIS ---");
-    if (TLAT == 0) {
-        printf("\n(Nenhuma atividade cadastrada)\n");
-    } else {
+    if (TLAT == 0) printf("\n(Nenhuma atividade cadastrada)\n");
+    else {
         for (i = 0; i < TLAT; i++) {
             printf("\nID: %d | Nome: %s", Atv[i].id, Atv[i].nome);
         }
@@ -125,9 +180,8 @@ void listarOpcoesAtividades(Atividade Atv[], int TLAT) {
 void listarOpcoesPacotes(Pacote Pc[], int TLPC) {
     int i;
     printf("\n--- PACOTES DISPONIVEIS ---");
-    if (TLPC == 0) {
-        printf("\n(Nenhum pacote cadastrado)\n");
-    } else {
+    if (TLPC == 0) printf("\n(Nenhum pacote cadastrado)\n");
+    else {
         for (i = 0; i < TLPC; i++) {
             printf("\nID: %d | Nome: %s", Pc[i].id, Pc[i].nome);
         }
@@ -138,9 +192,8 @@ void listarOpcoesPacotes(Pacote Pc[], int TLPC) {
 void listarOpcoesPlanos(Plano Pl[], int TLPL) {
     int i;
     printf("\n--- PLANOS DISPONIVEIS ---");
-    if (TLPL == 0) {
-        printf("\n(Nenhum plano cadastrado)\n");
-    } else {
+    if (TLPL == 0) printf("\n(Nenhum plano cadastrado)\n");
+    else {
         for (i = 0; i < TLPL; i++) {
             printf("\nID: %d | Nome: %s | Tipo: %c | Valor Base: R$ %.2f", Pl[i].id, Pl[i].nome, Pl[i].tipo, Pl[i].valor_base);
         }
@@ -149,14 +202,14 @@ void listarOpcoesPlanos(Plano Pl[], int TLPL) {
 }
 
 // ==========================================
-// 3. REGRAS FINANCEIRAS DE SUPORTE
+// REGRAS FINANCEIRAS
 // ==========================================
 
 float calcularDescontoPlano(float valorBase, char tipoPlano) {
     float desconto = 0.0;
-    if (tipoPlano == 'T' || tipoPlano == 't') desconto = valorBase * 0.05f;
-    else if (tipoPlano == 'S' || tipoPlano == 's') desconto = valorBase * 0.10f;
-    else if (tipoPlano == 'A' || tipoPlano == 'a') desconto = valorBase * 0.15f;
+    if (tipoPlano == 'T') desconto = valorBase * 0.05f;
+    else if (tipoPlano == 'S') desconto = valorBase * 0.10f;
+    else if (tipoPlano == 'A') desconto = valorBase * 0.15f;
     return valorBase - desconto;
 }
 
@@ -167,50 +220,49 @@ void gerarProximoBoleto(Recebimento Rec[], int *TLREC, int *prxid_rec, char cpf[
         strcpy(Rec[*TLREC].cpf_aluno, cpf);
         Rec[*TLREC].mes_referencia = proximoMes;
         Rec[*TLREC].valor_cobrado = valor;
-        Rec[*TLREC].status_pago = 0; // Aberto
+        Rec[*TLREC].status_pago = 0;
         (*TLREC)++;
         printf("\n[BOLETO GERADO] Novo boleto para o mes %d no valor de R$ %.2f\n", proximoMes, valor);
     }
 }
 
 // ==========================================
-// 4. CADASTROS
+// CADASTROS
 // ==========================================
 
 char cadastrarAluno(Aluno Al[], int *TLA) {
-    char temp_cpf[20], op;
+    char temp_cpf[20];
     int idx;
 
     if (*TLA < TF) {
         printf("\n\n<==== CADASTRO DE ALUNO ====>\n");
-        printf("Insira o CPF: ");
-        fflush(stdin);
-        gets(temp_cpf);
+        printf("Insira o CPF (apenas numeros): ");
+        lerCPF(temp_cpf);
 
         idx = buscaAluno(Al, *TLA, temp_cpf);
         if (idx != -1) {
             printf("** ERRO: CPF ja cadastrado! **\n");
         } else {
             strcpy(Al[*TLA].cpf, temp_cpf);
+            
             printf("Insira o nome completo: ");
             fflush(stdin);
             gets(Al[*TLA].nome);
+            
             printf("Insira o telefone: ");
             fflush(stdin);
-            gets(Al[*TLA].telefone);
+            scanf("%s", Al[*TLA].telefone);
 
             Al[*TLA].id_pacote = -1;
             Al[*TLA].id_plano = -1;
-            Al[*TLA].status_matricula = 0; // Inativa ate matricular
+            Al[*TLA].status_matricula = 0;
 
             (*TLA)++;
             printf("\n** Aluno cadastrado com sucesso! **\n");
         }
 
         printf("Deseja cadastrar outro aluno? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &op);
-        return toupper(op);
+        return lerOpcaoSN();
     } else {
         printf("\n** ERRO: Limite de alunos atingido! **\n");
         return 'N';
@@ -218,23 +270,24 @@ char cadastrarAluno(Aluno Al[], int *TLA) {
 }
 
 char cadastrarInstrutor(Instrutor Inst[], int *TLINST) {
-    char temp_cpf[20], op;
+    char temp_cpf[20];
     int idx;
 
     if (*TLINST < TF) {
         printf("\n\n<==== CADASTRO DE INSTRUTOR ====>\n");
-        printf("Insira o CPF: ");
-        fflush(stdin);
-        gets(temp_cpf);
+        printf("Insira o CPF (apenas numeros): ");
+        lerCPF(temp_cpf);
 
         idx = buscaInstrutor(Inst, *TLINST, temp_cpf);
         if (idx != -1) {
             printf("** ERRO: Instrutor ja cadastrado! **\n");
         } else {
             strcpy(Inst[*TLINST].cpf, temp_cpf);
+            
             printf("Insira o nome: ");
             fflush(stdin);
             gets(Inst[*TLINST].nome);
+            
             printf("Insira a especialidade: ");
             fflush(stdin);
             gets(Inst[*TLINST].especialidade);
@@ -244,9 +297,7 @@ char cadastrarInstrutor(Instrutor Inst[], int *TLINST) {
         }
 
         printf("Deseja cadastrar outro instrutor? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &op);
-        return toupper(op);
+        return lerOpcaoSN();
     } else {
         printf("\n** ERRO: Limite de instrutores atingido! **\n");
         return 'N';
@@ -254,7 +305,6 @@ char cadastrarInstrutor(Instrutor Inst[], int *TLINST) {
 }
 
 char cadastrarAtividade(Atividade Atv[], Instrutor Inst[], int *TLAT, int TLINST, int *prxid_atv) {
-    char op;
     int idxInst;
 
     if (*TLAT < TF) {
@@ -266,15 +316,12 @@ char cadastrarAtividade(Atividade Atv[], Instrutor Inst[], int *TLAT, int TLINST
         fflush(stdin);
         gets(Atv[*TLAT].nome);
 
-        // Exibe lista de instrutores para orientar a escolha
         listarOpcoesInstrutores(Inst, TLINST);
 
-        printf("Insira o CPF do Instrutor Responsavel: ");
-        fflush(stdin);
-        gets(Atv[*TLAT].cpf_instrutor);
+        printf("Insira o CPF do Instrutor Responsavel (apenas numeros): ");
+        lerCPF(Atv[*TLAT].cpf_instrutor);
 
         idxInst = buscaInstrutor(Inst, TLINST, Atv[*TLAT].cpf_instrutor);
-
         if (idxInst == -1) {
             printf("** ATENCAO: Instrutor nao encontrado no cadastro atual. **\n");
         }
@@ -283,9 +330,7 @@ char cadastrarAtividade(Atividade Atv[], Instrutor Inst[], int *TLAT, int TLINST
         printf("\n** Atividade cadastrada com sucesso! **\n");
 
         printf("Deseja cadastrar outra atividade? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &op);
-        return toupper(op);
+        return lerOpcaoSN();
     } else {
         printf("\n** ERRO: Limite de atividades atingido! **\n");
         return 'N';
@@ -293,7 +338,7 @@ char cadastrarAtividade(Atividade Atv[], Instrutor Inst[], int *TLAT, int TLINST
 }
 
 char cadastrarPacote(Pacote Pc[], Atividade Atv[], int *TLPC, int TLAT, int *prxid_pc) {
-    char op, continuar = 'S';
+    char continuar = 'S';
     int tempId, idxAtiv;
 
     if (*TLPC < TF) {
@@ -306,12 +351,11 @@ char cadastrarPacote(Pacote Pc[], Atividade Atv[], int *TLPC, int TLAT, int *prx
         fflush(stdin);
         gets(Pc[*TLPC].nome);
 
-        // Exibe lista de atividades para orientar a escolha
         listarOpcoesAtividades(Atv, TLAT);
 
-        while ((continuar == 'S' || continuar == 's') && Pc[*TLPC].qtd_atividades < 10) {
+        while (continuar == 'S' && Pc[*TLPC].qtd_atividades < 10) {
             printf("Insira o ID da Atividade para incluir: ");
-            scanf("%d", &tempId);
+            tempId = lerInteiro();
             idxAtiv = buscaAtividade(Atv, TLAT, tempId);
 
             if (idxAtiv != -1) {
@@ -324,8 +368,7 @@ char cadastrarPacote(Pacote Pc[], Atividade Atv[], int *TLPC, int TLAT, int *prx
 
             if (Pc[*TLPC].qtd_atividades < 10) {
                 printf("Deseja incluir mais uma atividade neste pacote? (S/N): ");
-                fflush(stdin);
-                scanf("%c", &continuar);
+                continuar = lerOpcaoSN();
             }
         }
 
@@ -333,9 +376,7 @@ char cadastrarPacote(Pacote Pc[], Atividade Atv[], int *TLPC, int TLAT, int *prx
         printf("\n** Pacote cadastrado com sucesso! **\n");
 
         printf("Deseja cadastrar outro pacote? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &op);
-        return toupper(op);
+        return lerOpcaoSN();
     } else {
         printf("\n** ERRO: Limite de pacotes atingido! **\n");
         return 'N';
@@ -343,7 +384,7 @@ char cadastrarPacote(Pacote Pc[], Atividade Atv[], int *TLPC, int TLAT, int *prx
 }
 
 char cadastrarPlano(Plano Pl[], int *TLPL, int *prxid_pl) {
-    char op;
+    char tipo;
 
     if (*TLPL < TF) {
         printf("\n\n<==== CADASTRO DE PLANO ====>\n");
@@ -354,20 +395,24 @@ char cadastrarPlano(Plano Pl[], int *TLPL, int *prxid_pl) {
         fflush(stdin);
         gets(Pl[*TLPL].nome);
 
-        printf("Tipo [M-Mensal, T-Trimestral, S-Semestral, A-Anual]: ");
-        fflush(stdin);
-        scanf("%c", &Pl[*TLPL].tipo);
+        do {
+            printf("Tipo [M-Mensal, T-Trimestral, S-Semestral, A-Anual]: ");
+            fflush(stdin);
+            scanf("%c", &tipo);
+            Pl[*TLPL].tipo = toupper(tipo);
+            if (Pl[*TLPL].tipo != 'M' && Pl[*TLPL].tipo != 'T' && Pl[*TLPL].tipo != 'S' && Pl[*TLPL].tipo != 'A') {
+                printf("** TIPO INVALIDO! Tente novamente. **\n");
+            }
+        } while (Pl[*TLPL].tipo != 'M' && Pl[*TLPL].tipo != 'T' && Pl[*TLPL].tipo != 'S' && Pl[*TLPL].tipo != 'A');
 
         printf("Insira o valor base (R$): ");
-        scanf("%f", &Pl[*TLPL].valor_base);
+        Pl[*TLPL].valor_base = lerFloat();
 
         (*TLPL)++;
         printf("\n** Plano cadastrado com sucesso! **\n");
 
         printf("Deseja cadastrar outro plano? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &op);
-        return toupper(op);
+        return lerOpcaoSN();
     } else {
         printf("\n** ERRO: Limite de planos atingido! **\n");
         return 'N';
@@ -375,28 +420,35 @@ char cadastrarPlano(Plano Pl[], int *TLPL, int *prxid_pl) {
 }
 
 // ==========================================
-// 5. CONSULTAS SEM ACENTUACAO
+// CONSULTAS 
 // ==========================================
 
 void consultarPessoas(Aluno Al[], Instrutor Inst[], int TLA, int TLINST) {
     int opCat, opSub, i;
-    char cpf[15];
+    char cpf[20];
 
     printf("\n1. Consultar Alunos\n2. Consultar Instrutores\nEscolha: ");
-    scanf("%d", &opCat);
+    do {
+        opCat = lerInteiro();
+        if (opCat != 1 && opCat != 2) printf("** OPCAO INVALIDA! Escolha 1 ou 2: ");
+    } while (opCat != 1 && opCat != 2);
 
     if (opCat == 1) {
         do {
             printf("\n--- CONSULTA DE ALUNOS ---");
             printf("\n1. Consultar CPF Especifico\n2. Exibir Todos\n0. Voltar ao Menu Pessoas\nOpcao: ");
-            scanf("%d", &opSub);
+            opSub = lerInteiro();
+            
+            if (opSub < 0 || opSub > 2) {
+                printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+                continue;
+            }
 
             if (opSub == 1) {
                 if (TLA == 0) { printf("\nNenhum aluno cadastrado.\n"); }
                 else {
-                    printf("CPF do Aluno: ");
-                    fflush(stdin);
-                    gets(cpf);
+                    printf("CPF do Aluno (apenas numeros): ");
+                    lerCPF(cpf);
                     i = buscaAluno(Al, TLA, cpf);
                     if (i != -1) {
                         printf("\nNome: %s | CPF: %s | Tel: %s | Status: %s\n", 
@@ -420,14 +472,18 @@ void consultarPessoas(Aluno Al[], Instrutor Inst[], int TLA, int TLINST) {
         do {
             printf("\n--- CONSULTA DE INSTRUTORES ---");
             printf("\n1. Consultar CPF Especifico\n2. Exibir Todos\n0. Voltar ao Menu Pessoas\nOpcao: ");
-            scanf("%d", &opSub);
+            opSub = lerInteiro();
+            
+            if (opSub < 0 || opSub > 2) {
+                printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+                continue;
+            }
 
             if (opSub == 1) {
                 if (TLINST == 0) { printf("\nNenhum instrutor cadastrado.\n"); }
                 else {
-                    printf("CPF do Instrutor: ");
-                    fflush(stdin);
-                    gets(cpf);
+                    printf("CPF do Instrutor (apenas numeros): ");
+                    lerCPF(cpf);
                     i = buscaInstrutor(Inst, TLINST, cpf);
                     if (i != -1) {
                         printf("\nNome: %s | CPF: %s | Espec: %s\n", Inst[i].nome, Inst[i].cpf, Inst[i].especialidade);
@@ -453,13 +509,18 @@ void consultarAtividades(Atividade Atv[], int TLAT) {
     do {
         printf("\n--- CONSULTA DE ATIVIDADES ---");
         printf("\n1. Consultar ID Especifico\n2. Exibir Todas\n0. Voltar ao Menu Atividades\nOpcao: ");
-        scanf("%d", &opSub);
+        opSub = lerInteiro();
+        
+        if (opSub < 0 || opSub > 2) {
+            printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+            continue;
+        }
 
         if (opSub == 1) {
             if (TLAT == 0) { printf("\nNenhuma atividade cadastrada.\n"); }
             else {
                 printf("ID da Atividade: ");
-                scanf("%d", &id);
+                id = lerInteiro();
                 i = buscaAtividade(Atv, TLAT, id);
                 if (i != -1) {
                     printf("\nID: %d | Nome: %s | CPF Instrutor: %s\n", Atv[i].id, Atv[i].nome, Atv[i].cpf_instrutor);
@@ -484,13 +545,18 @@ void consultarPacotes(Pacote Pc[], int TLPC) {
     do {
         printf("\n--- CONSULTA DE PACOTES ---");
         printf("\n1. Consultar ID Especifico\n2. Exibir Todos\n0. Voltar ao Menu Pacotes\nOpcao: ");
-        scanf("%d", &opSub);
+        opSub = lerInteiro();
+        
+        if (opSub < 0 || opSub > 2) {
+            printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+            continue;
+        }
 
         if (opSub == 1) {
             if (TLPC == 0) { printf("\nNenhum pacote cadastrado.\n"); }
             else {
                 printf("ID do Pacote: ");
-                scanf("%d", &id);
+                id = lerInteiro();
                 i = buscaPacote(Pc, TLPC, id);
                 if (i != -1) {
                     printf("\nID: %d | Nome: %s | Atividades: ", Pc[i].id, Pc[i].nome);
@@ -519,13 +585,18 @@ void consultarPlanos(Plano Pl[], int TLPL) {
     do {
         printf("\n--- CONSULTA DE PLANOS ---");
         printf("\n1. Consultar ID Especifico\n2. Exibir Todos\n0. Voltar ao Menu Planos\nOpcao: ");
-        scanf("%d", &opSub);
+        opSub = lerInteiro();
+        
+        if (opSub < 0 || opSub > 2) {
+            printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+            continue;
+        }
 
         if (opSub == 1) {
             if (TLPL == 0) { printf("\nNenhum plano cadastrado.\n"); }
             else {
                 printf("ID do Plano: ");
-                scanf("%d", &id);
+                id = lerInteiro();
                 i = buscaPlano(Pl, TLPL, id);
                 if (i != -1) {
                     printf("\nID: %d | Nome: %s | Tipo: %c | Valor Base: R$ %.2f\n", Pl[i].id, Pl[i].nome, Pl[i].tipo, Pl[i].valor_base);
@@ -545,41 +616,40 @@ void consultarPlanos(Plano Pl[], int TLPL) {
 }
 
 // ==========================================
-// 6. EXCLUSOES
+// EXCLUSOES
 // ==========================================
 
 void excluirPessoa(Aluno Al[], int *TLA, Instrutor Inst[], int *TLINST) {
-    char cpf[15], confirmacao;
+    char cpf[20], confirmacao;
     int op, idx, j;
 
     printf("\n1. Excluir Aluno\n2. Excluir Instrutor\nEscolha: ");
-    scanf("%d", &op);
+    do {
+        op = lerInteiro();
+        if (op != 1 && op != 2) printf("** OPCAO INVALIDA! Escolha 1 ou 2: ");
+    } while (op != 1 && op != 2);
 
     if (op == 1) {
-        printf("CPF do Aluno a excluir: ");
-        fflush(stdin);
-        gets(cpf);
+        printf("CPF do Aluno a excluir (apenas numeros): ");
+        lerCPF(cpf);
         idx = buscaAluno(Al, *TLA, cpf);
         if (idx != -1) {
             printf("Confirmar exclusao de %s? (S/N): ", Al[idx].nome);
-            fflush(stdin);
-            scanf("%c", &confirmacao);
-            if (toupper(confirmacao) == 'S') {
+            confirmacao = lerOpcaoSN();
+            if (confirmacao == 'S') {
                 for (j = idx; j < *TLA - 1; j++) Al[j] = Al[j + 1];
                 (*TLA)--;
                 printf("\n** Aluno excluido com sucesso! **\n");
             }
         } else printf("\nAluno nao encontrado.\n");
     } else if (op == 2) {
-        printf("CPF do Instrutor a excluir: ");
-        fflush(stdin);
-        gets(cpf);
+        printf("CPF do Instrutor a excluir (apenas numeros): ");
+        lerCPF(cpf);
         idx = buscaInstrutor(Inst, *TLINST, cpf);
         if (idx != -1) {
             printf("Confirmar exclusao de %s? (S/N): ", Inst[idx].nome);
-            fflush(stdin);
-            scanf("%c", &confirmacao);
-            if (toupper(confirmacao) == 'S') {
+            confirmacao = lerOpcaoSN();
+            if (confirmacao == 'S') {
                 for (j = idx; j < *TLINST - 1; j++) Inst[j] = Inst[j + 1];
                 (*TLINST)--;
                 printf("\n** Instrutor excluido com sucesso! **\n");
@@ -592,13 +662,12 @@ void excluirAtividade(Atividade Atv[], int *TLAT) {
     int id, idx, j;
     char conf;
     printf("ID da Atividade a excluir: ");
-    scanf("%d", &id);
+    id = lerInteiro();
     idx = buscaAtividade(Atv, *TLAT, id);
     if (idx != -1) {
         printf("Confirmar exclusao? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &conf);
-        if (toupper(conf) == 'S') {
+        conf = lerOpcaoSN();
+        if (conf == 'S') {
             for (j = idx; j < *TLAT - 1; j++) Atv[j] = Atv[j + 1];
             (*TLAT)--;
             printf("\n** Atividade excluida! **\n");
@@ -610,13 +679,12 @@ void excluirPacote(Pacote Pc[], int *TLPC) {
     int id, idx, j;
     char conf;
     printf("ID do Pacote a excluir: ");
-    scanf("%d", &id);
+    id = lerInteiro();
     idx = buscaPacote(Pc, *TLPC, id);
     if (idx != -1) {
         printf("Confirmar exclusao? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &conf);
-        if (toupper(conf) == 'S') {
+        conf = lerOpcaoSN();
+        if (conf == 'S') {
             for (j = idx; j < *TLPC - 1; j++) Pc[j] = Pc[j + 1];
             (*TLPC)--;
             printf("\n** Pacote excluido! **\n");
@@ -628,13 +696,12 @@ void excluirPlano(Plano Pl[], int *TLPL) {
     int id, idx, j;
     char conf;
     printf("ID do Plano a excluir: ");
-    scanf("%d", &id);
+    id = lerInteiro();
     idx = buscaPlano(Pl, *TLPL, id);
     if (idx != -1) {
         printf("Confirmar exclusao? (S/N): ");
-        fflush(stdin);
-        scanf("%c", &conf);
-        if (toupper(conf) == 'S') {
+        conf = lerOpcaoSN();
+        if (conf == 'S') {
             for (j = idx; j < *TLPL - 1; j++) Pl[j] = Pl[j + 1];
             (*TLPL)--;
             printf("\n** Plano excluido! **\n");
@@ -643,46 +710,46 @@ void excluirPlano(Plano Pl[], int *TLPL) {
 }
 
 // ==========================================
-// 7. MOVIMENTACOES E RECEBIMENTOS
+// MOVIMENTACOES E RECEBIMENTOS
 // ==========================================
 
 void efetuarMatricula(Aluno Al[], int TLA, Plano Pl[], int TLPL, Pacote Pc[], int TLPC, Recebimento Rec[], int *TLREC, int *prxid_rec) {
-    char cpf[15];
+    char cpf[20];
     int idPlano, idPacote, idxAluno, idxPlano, idxPacote, mesInicio;
     float valorFinal;
 
     printf("\n<==== EFETUAR MATRICULA ====>\n");
-    printf("CPF do Aluno: ");
-    fflush(stdin);
-    gets(cpf);
+    printf("CPF do Aluno (apenas numeros): ");
+    lerCPF(cpf);
     idxAluno = buscaAluno(Al, TLA, cpf);
 
     if (idxAluno == -1) { printf("** ERRO: Aluno nao encontrado! **\n"); return; }
 
-    // Exibe lista de planos para orientar a escolha
     listarOpcoesPlanos(Pl, TLPL);
     printf("ID do Plano: ");
-    scanf("%d", &idPlano);
+    idPlano = lerInteiro();
     idxPlano = buscaPlano(Pl, TLPL, idPlano);
 
     if (idxPlano == -1) { printf("** ERRO: Plano invalido! **\n"); return; }
 
-    // Exibe lista de pacotes para orientar a escolha
     listarOpcoesPacotes(Pc, TLPC);
     printf("ID do Pacote: ");
-    scanf("%d", &idPacote);
+    idPacote = lerInteiro();
     idxPacote = buscaPacote(Pc, TLPC, idPacote);
 
     if (idxPacote == -1) { printf("** ERRO: Pacote invalido! **\n"); return; }
 
     printf("Mes inicial da cobranca (1-12): ");
-    scanf("%d", &mesInicio);
+    do {
+        mesInicio = lerInteiro();
+        if (mesInicio < 1 || mesInicio > 12) printf("** MES INVALIDO! Digite de 1 a 12: ");
+    } while (mesInicio < 1 || mesInicio > 12);
 
     valorFinal = calcularDescontoPlano(Pl[idxPlano].valor_base, Pl[idxPlano].tipo);
 
     Al[idxAluno].id_plano = idPlano;
     Al[idxAluno].id_pacote = idPacote;
-    Al[idxAluno].status_matricula = 1; // Ativa
+    Al[idxAluno].status_matricula = 1;
 
     printf("\n[MATRICULA REGISTRADA]");
     printf("\nPlano: %s | Valor Real Final: R$ %.2f\n", Pl[idxPlano].nome, valorFinal);
@@ -691,14 +758,13 @@ void efetuarMatricula(Aluno Al[], int TLA, Plano Pl[], int TLPL, Pacote Pc[], in
 }
 
 void efetuarCancelamento(Aluno Al[], int TLA, Plano Pl[], int TLPL) {
-    char cpf[15];
+    char cpf[20];
     int idxAluno, idxPlano;
     float valor, multa, reembolso;
 
     printf("\n<==== CANCELAMENTO DE MATRICULA ====>\n");
-    printf("CPF do Aluno: ");
-    fflush(stdin);
-    gets(cpf);
+    printf("CPF do Aluno (apenas numeros): ");
+    lerCPF(cpf);
     idxAluno = buscaAluno(Al, TLA, cpf);
 
     if (idxAluno == -1 || Al[idxAluno].status_matricula == 0) {
@@ -709,7 +775,7 @@ void efetuarCancelamento(Aluno Al[], int TLA, Plano Pl[], int TLPL) {
     idxPlano = buscaPlano(Pl, TLPL, Al[idxAluno].id_plano);
     valor = Pl[idxPlano].valor_base;
 
-    if (toupper(Pl[idxPlano].tipo) != 'M') {
+    if (Pl[idxPlano].tipo != 'M') {
         multa = valor * 0.30f;
         reembolso = valor * 0.70f;
         printf("\nMulta de Retencao (30%%): R$ %.2f", multa);
@@ -723,15 +789,15 @@ void efetuarCancelamento(Aluno Al[], int TLA, Plano Pl[], int TLPL) {
 }
 
 void efetuarRecebimento(Recebimento Rec[], int TLREC, int *prxid_rec) {
-    char cpf[15];
+    char cpf[20];
     int mes, i, achou = 0;
 
     printf("\n<==== REGISTRAR RECEBIMENTO ====>\n");
-    printf("CPF do Aluno: ");
-    fflush(stdin);
-    gets(cpf);
+    printf("CPF do Aluno (apenas numeros): ");
+    lerCPF(cpf);
+    
     printf("Mes do Boleto: ");
-    scanf("%d", &mes);
+    mes = lerInteiro();
 
     for (i = 0; i < TLREC; i++) {
         if (strcmp(Rec[i].cpf_aluno, cpf) == 0 && Rec[i].mes_referencia == mes) {
@@ -751,11 +817,14 @@ void efetuarRecebimento(Recebimento Rec[], int TLREC, int *prxid_rec) {
 
 void relatoriosGerais(Recebimento Rec[], int TLREC, Aluno Al[], int TLA) {
     int op, i, mesBusca;
-    char cpf[15];
+    char cpf[20];
 
     printf("\n<=== RELATORIOS GERAIS ===>\n");
     printf("1. Extrato de Recebimentos\n2. Status das Matriculas\n3. Pagamentos por CPF\n4. Pagamentos por Mes\nEscolha: ");
-    scanf("%d", &op);
+    do {
+        op = lerInteiro();
+        if (op < 1 || op > 4) printf("** OPCAO INVALIDA! Escolha entre 1 e 4: ");
+    } while (op < 1 || op > 4);
 
     if (op == 1) {
         for (i = 0; i < TLREC; i++) {
@@ -767,9 +836,8 @@ void relatoriosGerais(Recebimento Rec[], int TLREC, Aluno Al[], int TLA) {
             printf("Nome: %s | CPF: %s | Matricula: %s\n", Al[i].nome, Al[i].cpf, Al[i].status_matricula ? "ATIVA" : "INATIVA");
         }
     } else if (op == 3) {
-        printf("CPF do Aluno: ");
-        fflush(stdin);
-        gets(cpf);
+        printf("CPF do Aluno (apenas numeros): ");
+        lerCPF(cpf);
         for (i = 0; i < TLREC; i++) {
             if (strcmp(Rec[i].cpf_aluno, cpf) == 0) {
                 printf("Mes: %d | Valor: R$ %.2f | Status: %s\n", Rec[i].mes_referencia, Rec[i].valor_cobrado, Rec[i].status_pago ? "PAGO" : "ABERTO");
@@ -777,7 +845,7 @@ void relatoriosGerais(Recebimento Rec[], int TLREC, Aluno Al[], int TLA) {
         }
     } else if (op == 4) {
         printf("Mes: ");
-        scanf("%d", &mesBusca);
+        mesBusca = lerInteiro();
         for (i = 0; i < TLREC; i++) {
             if (Rec[i].mes_referencia == mesBusca) {
                 printf("CPF: %s | Valor: R$ %.2f | Status: %s\n", Rec[i].cpf_aluno, Rec[i].valor_cobrado, Rec[i].status_pago ? "PAGO" : "ABERTO");
@@ -787,7 +855,7 @@ void relatoriosGerais(Recebimento Rec[], int TLREC, Aluno Al[], int TLA) {
 }
 
 // ==========================================
-// 8. MENU PRINCIPAL
+// MENU PRINCIPAL
 // ==========================================
 
 int main() {
@@ -812,14 +880,26 @@ int main() {
         printf("\n5. Movimentacoes e Financeiro");
         printf("\n0. Sair");
         printf("\nOpcao: ");
-        scanf("%d", &opPrincipal);
+        
+        opPrincipal = lerInteiro();
+
+        if (opPrincipal < 0 || opPrincipal > 5) {
+            printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+            continue;
+        }
 
         switch (opPrincipal) {
             case 1:
                 do {
                     printf("\n--- MENU PESSOAS ---");
                     printf("\n1. Cadastrar Aluno\n2. Cadastrar Instrutor\n3. Consultar Pessoas\n4. Excluir Pessoa\n0. Voltar\nOpcao: ");
-                    scanf("%d", &opSub);
+                    opSub = lerInteiro();
+                    
+                    if (opSub < 0 || opSub > 4) {
+                        printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+                        continue;
+                    }
+
                     if (opSub == 1) {
                         do { opContinuar = cadastrarAluno(Al, &TLA); } while (opContinuar == 'S');
                     } else if (opSub == 2) {
@@ -833,7 +913,13 @@ int main() {
                 do {
                     printf("\n--- MENU ATIVIDADES ---");
                     printf("\n1. Cadastrar Atividade\n2. Consultar Atividades\n3. Excluir Atividade\n0. Voltar\nOpcao: ");
-                    scanf("%d", &opSub);
+                    opSub = lerInteiro();
+                    
+                    if (opSub < 0 || opSub > 3) {
+                        printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+                        continue;
+                    }
+
                     if (opSub == 1) {
                         do { opContinuar = cadastrarAtividade(Atv, Inst, &TLAT, TLINST, &prxid_atv); } while (opContinuar == 'S');
                     } else if (opSub == 2) consultarAtividades(Atv, TLAT);
@@ -845,7 +931,13 @@ int main() {
                 do {
                     printf("\n--- MENU PACOTES ---");
                     printf("\n1. Cadastrar Pacote\n2. Consultar Pacotes\n3. Excluir Pacote\n0. Voltar\nOpcao: ");
-                    scanf("%d", &opSub);
+                    opSub = lerInteiro();
+                    
+                    if (opSub < 0 || opSub > 3) {
+                        printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+                        continue;
+                    }
+
                     if (opSub == 1) {
                         do { opContinuar = cadastrarPacote(Pc, Atv, &TLPC, TLAT, &prxid_pc); } while (opContinuar == 'S');
                     } else if (opSub == 2) consultarPacotes(Pc, TLPC);
@@ -857,7 +949,13 @@ int main() {
                 do {
                     printf("\n--- MENU PLANOS ---");
                     printf("\n1. Cadastrar Plano\n2. Consultar Planos\n3. Excluir Plano\n0. Voltar\nOpcao: ");
-                    scanf("%d", &opSub);
+                    opSub = lerInteiro();
+                    
+                    if (opSub < 0 || opSub > 3) {
+                        printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+                        continue;
+                    }
+
                     if (opSub == 1) {
                         do { opContinuar = cadastrarPlano(Pl, &TLPL, &prxid_pl); } while (opContinuar == 'S');
                     } else if (opSub == 2) consultarPlanos(Pl, TLPL);
@@ -874,7 +972,12 @@ int main() {
                     printf("\n4. Relatorios Gerais");
                     printf("\n0. Voltar");
                     printf("\nOpcao: ");
-                    scanf("%d", &opSub);
+                    opSub = lerInteiro();
+                    
+                    if (opSub < 0 || opSub > 4) {
+                        printf("\n** OPCAO INVALIDA! Tente novamente. **\n");
+                        continue;
+                    }
 
                     if (opSub == 1) efetuarMatricula(Al, TLA, Pl, TLPL, Pc, TLPC, Rec, &TLREC, &prxid_rec);
                     else if (opSub == 2) efetuarCancelamento(Al, TLA, Pl, TLPL);
