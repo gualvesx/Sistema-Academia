@@ -111,9 +111,9 @@ char lerOpcaoSN() {
 int buscaAluno(char cpf[]) {
     Aluno Al;
     FILE *arqAluno;
-    arqAluno = fopen("alunos.bin", "rb");
+    arqAluno = fopen("aluno.bin", "rb");
     
-    if (arqAluno == NULL) return -1; // Corrigido o ponto e vírgula
+    if (arqAluno == NULL) return -1; 
 
     int achei = -1;
     int pos = 0;
@@ -127,6 +127,28 @@ int buscaAluno(char cpf[]) {
     }
 
     fclose(arqAluno);
+    return achei;
+}
+
+int buscaInstrutor(char cpf[]) {
+    Instrutor Inst;
+    FILE *arqInstrutor;
+    arqInstrutor = fopen("aluno.bin", "rb");
+    
+    if (arqInstrutor == NULL) return -1;
+
+    int achei = -1;
+    int pos = 0;
+    
+    while (fread(&Inst, sizeof(Instrutor), 1, arqInstrutor) == 1) {
+        if (strcmp(cpf, Inst.cpf) == 0) {
+            achei = pos; 
+            break;
+        }
+        pos++;
+    }
+
+    fclose(arqInstrutor);
     return achei;
 }
 
@@ -151,7 +173,7 @@ int menuPrincipal()
 char cadastrarAluno() {
     Aluno Al;
     FILE *arqAluno;
-    arqAluno = fopen("alunos.bin", "ab"); // Abre para adicionar no fim
+    arqAluno = fopen("aluno.bin", "ab");
     
     char temp_cpf[20];
     int idx;
@@ -171,11 +193,11 @@ char cadastrarAluno() {
 
             printf("Insira o nome completo: ");
             fflush(stdin);
-            gets(Al.nome);
+            fgets(Al.nome,sizeof(Al.nome),stdin);
 
             printf("Insira o telefone: ");
             fflush(stdin);
-            scanf("%19s", Al.telefone); // Removido o &
+            scanf("%19s", Al.telefone);
 
             printf("Insira o id do pacote: ");
             scanf("%d", &Al.id_pacote);
@@ -200,6 +222,63 @@ char cadastrarAluno() {
     }
 }
 
+char cadastrarInstrutor() {
+    Instrutor Inst;
+    FILE *arqInstrutor;
+    arqInstrutor = fopen("instrutor.bin", "ab"); 
+    
+    char temp_cpf[20];
+    int idx;
+
+    system("cls");
+    if (arqInstrutor != NULL) {
+        printf("\n<==== CADASTRO DE INSTRUTOR ====>\n");
+        printf("Insira o CPF (apenas numeros): ");
+        lerCPF(temp_cpf);
+
+        idx = buscaInstrutor(temp_cpf);
+        if (idx != -1) { 
+            printf("** ERRO: CPF ja cadastrado! **\n");
+        } 
+        else {
+            strcpy(Inst.cpf, temp_cpf);
+
+            printf("Insira o nome completo: ");
+            fflush(stdin);
+            fgets(Inst.nome,sizeof(Inst.nome),stdin);
+
+            printf("Insira a especialidade: ");
+            fflush(stdin);
+            fgets(Inst.especialidade,sizeof(Inst.especialidade),stdin); 
+
+            fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+
+            printf("\n** Instrutor cadastrado com sucesso! **\n");
+        }
+
+        fclose(arqInstrutor); 
+
+        printf("Deseja cadastrar outro instrutor? (S/N): ");
+        return lerOpcaoSN();
+    } else {
+        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
+        return 'N';
+    }
+}
+//<=====CONSULTAS=====>
+void consultarAluno() 
+{
+    int temp_cpf;
+    do 
+	{
+        system("cls");
+        printf("\n--- CONSULTAR ALUNO ---");
+        printf("\Insira o CPF: ");
+
+        
+        }
+    } while (op != 0);
+}
 
 //<=====SUB-MENUS=====>
 void gerenciarPessoas(Aluno Al, Instrutor Inst, Atividade Atv, Recebimento Rec) 
@@ -219,9 +298,9 @@ void gerenciarPessoas(Aluno Al, Instrutor Inst, Atividade Atv, Recebimento Rec)
 
         switch (op) {
             case 1: while (cadastrarAluno() == 'S'); break;
+            case 2: while (cadastrarInstrutor() == 'S'); break;
+            case 3: menuConsultarPessoas(); break;
             /*
-            case 2: while (cadastrarInstrutor(Inst, TLINST) == 'S'); break;
-            case 3: consultarPessoas(Al, Inst, *TLA, *TLINST); break;
             case 4: excluirPessoa(Al, TLA, Inst, TLINST, Atv, TLAT, Rec, TLREC); break;
             case 0: break;
             */
@@ -230,7 +309,26 @@ void gerenciarPessoas(Aluno Al, Instrutor Inst, Atividade Atv, Recebimento Rec)
     } while (op != 0);
 }
 
+void consultarPessoas() 
+{
+    int op;
+    do 
+	{
+        system("cls");
+        printf("\n--- CONSULTAR PESSOAS ---");
+        printf("\n1. Aluno");
+        printf("\n2. Instrutor");
+        printf("\n0. Voltar");
+        printf("\nOpcao: ");
+        op = lerInteiro();
 
+        switch (op) {
+            case 1: while (consultarAluno() == 'S'); break;
+            case 2: while (consultarInstrutor() == 'S'); break;
+            default: printf("\nOpcao invalida!\n"); system("pause");
+        }
+    } while (op != 0);
+}
 
 
 
