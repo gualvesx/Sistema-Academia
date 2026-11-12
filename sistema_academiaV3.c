@@ -2,6 +2,7 @@
 #include<ctype.h>
 #include<windows.h>
 #include<conio.h>
+#include<string.h>
 
 //<=============STRUCTS=============>
 
@@ -133,7 +134,7 @@ int buscaAluno(char cpf[]) {
 int buscaInstrutor(char cpf[]) {
     Instrutor Inst;
     FILE *arqInstrutor;
-    arqInstrutor = fopen("aluno.bin", "rb");
+    arqInstrutor = fopen("instrutor.bin", "rb");
     
     if (arqInstrutor == NULL) return -1;
 
@@ -152,6 +153,80 @@ int buscaInstrutor(char cpf[]) {
     return achei;
 }
 
+//<=====ORDENAÇÃO=====>
+void ordenarAluno()
+{
+	FILE *arqAluno;
+	Aluno Al, Ali;
+	int qtde=0, i;
+	arqAluno = fopen("aluno.bin", "rb+");
+	if(arqAluno == NULL)
+		printf("\n** Erro no arquivo **\n");
+	else
+	{
+		fseek(arqAluno, 0, 2);
+		qtde = ftell(arqAluno) / sizeof(Aluno);
+		while(qtde > 1)
+		{
+			for(i = 0; i < qtde - 1; i++)
+			{
+				fseek(arqAluno, i * sizeof(Aluno), 0);
+				fread(&Al, sizeof(Aluno), 1, arqAluno);
+				fseek(arqAluno, (i + 1) * sizeof(Aluno), 0);
+				fread(&Ali, sizeof(Aluno), 1, arqAluno);
+				if(strcmp(Al.nome, Ali.nome) > 0)
+				{
+					fseek(arqAluno, i * sizeof(Aluno), 0);
+					fwrite(&Ali, sizeof(Aluno), 1, arqAluno);
+					fseek(arqAluno, (i + 1) * sizeof(Aluno), 0);
+					fwrite(&Al, sizeof(Aluno), 1, arqAluno);
+				}
+			}
+			qtde--;
+		}
+		fclose(arqAluno);
+		printf("\n** Arquivo de Aluno ordenado com sucesso! **\n");
+	}
+	system("pause");
+	system("cls");		
+}
+
+void ordenarInstrutor()
+{
+	FILE *arqInstrutor;
+	Instrutor Inst, Insti;
+	int qtde=0, i;
+	arqInstrutor = fopen("instrutor.bin", "rb+");
+	if(arqInstrutor == NULL)
+		printf("\n** Erro no arquivo **\n");
+	else
+	{
+		fseek(arqInstrutor, 0, 2);
+		qtde = ftell(arqInstrutor) / sizeof(Instrutor);
+		while(qtde > 1)
+		{
+			for(i = 0; i < qtde - 1; i++)
+			{
+				fseek(arqInstrutor, i * sizeof(Instrutor), 0);
+				fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+				fseek(arqInstrutor, (i + 1) * sizeof(Instrutor), 0);
+				fread(&Insti, sizeof(Instrutor), 1, arqInstrutor);
+				if(strcmp(Inst.nome, Insti.nome) > 0)
+				{
+					fseek(arqInstrutor, i * sizeof(Instrutor), 0);
+					fwrite(&Insti, sizeof(Instrutor), 1, arqInstrutor);
+					fseek(arqInstrutor, (i + 1) * sizeof(Instrutor), 0);
+					fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+				}
+			}
+			qtde--;
+		}
+		fclose(arqInstrutor);
+		printf("\n** Arquivo de Instrutor ordenado com sucesso! **\n");
+	}
+	system("pause");
+	system("cls");		
+}
 
 //<=====MENU=====>
 int menuPrincipal()
@@ -167,8 +242,9 @@ int menuPrincipal()
     printf("\n5. Movimentacoes e Financeiro");
     printf("\n0. Sair");
     printf("\nOpcao: ");
-
+    return 0;
 }
+
 //<=====CADASTROS=====>
 char cadastrarAluno() {
     Aluno Al;
@@ -186,14 +262,15 @@ char cadastrarAluno() {
 
         idx = buscaAluno(temp_cpf);
         if (idx != -1) { 
-            printf("** ERRO: CPF ja cadastrado! **\n");
+            printf("\n** ERRO: CPF ja cadastrado! **\n");
         } 
         else {
             strcpy(Al.cpf, temp_cpf);
 
             printf("Insira o nome completo: ");
             fflush(stdin);
-            fgets(Al.nome,sizeof(Al.nome),stdin);
+            fgets(Al.nome, sizeof(Al.nome), stdin);
+            Al.nome[strcspn(Al.nome, "\n")] = '\0';
 
             printf("Insira o telefone: ");
             fflush(stdin);
@@ -214,7 +291,7 @@ char cadastrarAluno() {
 
         fclose(arqAluno); 
 
-        printf("Deseja cadastrar outro aluno? (S/N): ");
+        printf("\nDeseja cadastrar outro aluno? (S/N): ");
         return lerOpcaoSN();
     } else {
         printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
@@ -238,18 +315,20 @@ char cadastrarInstrutor() {
 
         idx = buscaInstrutor(temp_cpf);
         if (idx != -1) { 
-            printf("** ERRO: CPF ja cadastrado! **\n");
+            printf("\n** ERRO: CPF ja cadastrado! **\n");
         } 
         else {
             strcpy(Inst.cpf, temp_cpf);
 
             printf("Insira o nome completo: ");
             fflush(stdin);
-            fgets(Inst.nome,sizeof(Inst.nome),stdin);
+            fgets(Inst.nome, sizeof(Inst.nome), stdin);
+            Inst.nome[strcspn(Inst.nome, "\n")] = '\0';
 
             printf("Insira a especialidade: ");
             fflush(stdin);
-            fgets(Inst.especialidade,sizeof(Inst.especialidade),stdin); 
+            fgets(Inst.especialidade, sizeof(Inst.especialidade), stdin);
+            Inst.especialidade[strcspn(Inst.especialidade, "\n")] = '\0';
 
             fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
 
@@ -258,24 +337,100 @@ char cadastrarInstrutor() {
 
         fclose(arqInstrutor); 
 
-        printf("Deseja cadastrar outro instrutor? (S/N): ");
+        printf("\nDeseja cadastrar outro instrutor? (S/N): ");
         return lerOpcaoSN();
     } else {
         printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
         return 'N';
     }
 }
+
 //<=====CONSULTAS=====>
-void consultarAluno() 
+char consultarAluno() 
 {
-    int temp_cpf;
+    char temp_cpf[20];
+    Aluno Al;
+    FILE *arqAluno;
+
+    system("cls");
+    printf("\n--- CONSULTAR ALUNO ---");
+    printf("\nInsira o CPF: ");
+    lerCPF(temp_cpf);
+
+    int pos = buscaAluno(temp_cpf);
+    if (pos != -1) {
+        arqAluno = fopen("aluno.bin", "rb");
+        if (arqAluno != NULL) {
+            fseek(arqAluno, pos * sizeof(Aluno), 0);
+            fread(&Al, sizeof(Aluno), 1, arqAluno);
+            fclose(arqAluno);
+
+            printf("\n** Aluno encontrado! **\n");
+            printf("Nome: %s\n", Al.nome);
+            printf("CPF: %s\n", Al.cpf);
+            printf("Telefone: %s\n", Al.telefone);
+            printf("ID Pacote: %d\n", Al.id_pacote);
+            printf("ID Plano: %d\n", Al.id_plano);
+            printf("Status Matricula: %d\n", Al.status_matricula);
+        }
+    } else {
+        printf("\n** ERRO: Aluno nao encontrado! **\n");
+    }
+
+    printf("\nDeseja consultar outro aluno? (S/N): ");
+    return lerOpcaoSN();
+}
+
+char consultarInstrutor() 
+{
+    char temp_cpf[20];
+    Instrutor Inst;
+    FILE *arqInstrutor;
+
+    system("cls");
+    printf("\n--- CONSULTAR INSTRUTOR ---");
+    printf("\nInsira o CPF: ");
+    lerCPF(temp_cpf);
+
+    int pos = buscaInstrutor(temp_cpf);
+    if (pos != -1) {
+        arqInstrutor = fopen("instrutor.bin", "rb");
+        if (arqInstrutor != NULL) {
+            fseek(arqInstrutor, pos * sizeof(Instrutor), 0);
+            fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+            fclose(arqInstrutor);
+
+            printf("\n** Instrutor encontrado! **\n");
+            printf("Nome: %s\n", Inst.nome);
+            printf("CPF: %s\n", Inst.cpf);
+            printf("Especialidade: %s\n", Inst.especialidade);
+        }
+    } else {
+        printf("\n** ERRO: Instrutor nao encontrado! **\n");
+    }
+
+    printf("\nDeseja consultar outro instrutor? (S/N): ");
+    return lerOpcaoSN();
+}
+
+void consultarPessoas() 
+{
+    int op;
     do 
 	{
         system("cls");
-        printf("\n--- CONSULTAR ALUNO ---");
-        printf("\Insira o CPF: ");
+        printf("\n--- CONSULTAR PESSOAS ---");
+        printf("\n1. Aluno");
+        printf("\n2. Instrutor");
+        printf("\n0. Voltar");
+        printf("\nOpcao: ");
+        op = lerInteiro();
 
-        
+        switch (op) {
+            case 1: while (consultarAluno() == 'S'); break;
+            case 2: while (consultarInstrutor() == 'S'); break;
+            case 0: break;
+            default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (op != 0);
 }
@@ -297,9 +452,17 @@ void gerenciarPessoas(Aluno Al, Instrutor Inst, Atividade Atv, Recebimento Rec)
         op = lerInteiro();
 
         switch (op) {
-            case 1: while (cadastrarAluno() == 'S'); break;
-            case 2: while (cadastrarInstrutor() == 'S'); break;
-            case 3: menuConsultarPessoas(); break;
+            case 1: 
+                while (cadastrarAluno() == 'S'); 
+                ordenarAluno(); 
+                break;
+            case 2: 
+                while (cadastrarInstrutor() == 'S'); 
+                ordenarInstrutor(); 
+                break;
+            case 3: 
+                consultarPessoas(); 
+                break;
             /*
             case 4: excluirPessoa(Al, TLA, Inst, TLINST, Atv, TLAT, Rec, TLREC); break;
             case 0: break;
@@ -309,30 +472,7 @@ void gerenciarPessoas(Aluno Al, Instrutor Inst, Atividade Atv, Recebimento Rec)
     } while (op != 0);
 }
 
-void consultarPessoas() 
-{
-    int op;
-    do 
-	{
-        system("cls");
-        printf("\n--- CONSULTAR PESSOAS ---");
-        printf("\n1. Aluno");
-        printf("\n2. Instrutor");
-        printf("\n0. Voltar");
-        printf("\nOpcao: ");
-        op = lerInteiro();
-
-        switch (op) {
-            case 1: while (consultarAluno() == 'S'); break;
-            case 2: while (consultarInstrutor() == 'S'); break;
-            default: printf("\nOpcao invalida!\n"); system("pause");
-        }
-    } while (op != 0);
-}
-
-
-
-main()
+int main()
 {
 	//<===ARQUIVOS===>
 	FILE *arqAluno, *arqInstrutor, *arqAtividade, *arqPacote, *arqPlano, *arqRecebimento;
@@ -346,18 +486,16 @@ main()
     Recebimento Rec;
     
     //<===SISTEMA===>
-    
     int opcaoPrincipal;
 	
 	do
 	{
 		menuPrincipal();
-		opcaoPrincipal=lerInteiro();
+		opcaoPrincipal = lerInteiro();
 		
 		switch (opcaoPrincipal) 
 		{
             case 1:
-            	//Fazendo
                 gerenciarPessoas(Al, Inst, Atv, Rec);
                 break;
                 /*Falta arrumar daqui pra baixo
@@ -383,4 +521,6 @@ main()
         }
         
     } while (opcaoPrincipal != 0);
+
+    return 0;
 }
