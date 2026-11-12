@@ -432,340 +432,6 @@ int menuPrincipal()
     return 0;
 }
 
-//<=====CADASTROS=====>
-char cadastrarAluno() {
-    Aluno Al;
-    FILE *arqAluno;
-    arqAluno = fopen("aluno.bin", "ab");
-    
-    char temp_cpf[20];
-    int idx;
-
-    system("cls");
-    if (arqAluno != NULL) {
-        printf("\n<==== CADASTRO DE ALUNO ====>\n");
-        printf("Insira o CPF (apenas numeros): ");
-        lerCPF(temp_cpf);
-
-        idx = buscaAluno(temp_cpf);
-        if (idx != -1) { 
-            printf("\n** ERRO: CPF ja cadastrado! **\n");
-        } 
-        else {
-            strcpy(Al.cpf, temp_cpf);
-            lerTextoApenasLetras("Insira o nome completo: ", Al.nome, sizeof(Al.nome));
-
-            printf("Insira o telefone: ");
-            fflush(stdin);
-            scanf("%19s", Al.telefone);
-
-            Al.id_pacote = -1;
-            Al.id_plano = -1;
-            Al.status_matricula = 0;
-
-            fwrite(&Al, sizeof(Aluno), 1, arqAluno);
-            printf("\n** Aluno cadastrado com sucesso! **\n");
-        }
-
-        fclose(arqAluno); 
-
-        printf("\nDeseja cadastrar outro aluno? (S/N): ");
-        return lerOpcaoSN();
-    } else {
-        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
-        return 'N';
-    }
-}
-
-char cadastrarInstrutor() {
-    Instrutor Inst;
-    FILE *arqInstrutor;
-    arqInstrutor = fopen("instrutor.bin", "ab"); 
-    
-    char temp_cpf[20];
-    int idx;
-
-    system("cls");
-    if (arqInstrutor != NULL) {
-        printf("\n<==== CADASTRO DE INSTRUTOR ====>\n");
-        printf("Insira o CPF (apenas numeros): ");
-        lerCPF(temp_cpf);
-
-        idx = buscaInstrutor(temp_cpf);
-        if (idx != -1) { 
-            printf("\n** ERRO: CPF ja cadastrado! **\n");
-        } 
-        else {
-            strcpy(Inst.cpf, temp_cpf);
-            lerTextoApenasLetras("Insira o nome completo: ", Inst.nome, sizeof(Inst.nome));
-            lerTextoApenasLetras("Insira a especialidade: ", Inst.especialidade, sizeof(Inst.especialidade));
-
-            fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
-            printf("\n** Instrutor cadastrado com sucesso! **\n");
-        }
-
-        fclose(arqInstrutor); 
-
-        printf("\nDeseja cadastrar outro instrutor? (S/N): ");
-        return lerOpcaoSN();
-    } else {
-        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
-        return 'N';
-    }
-}
-
-char cadastrarAtividade() {
-    Atividade Atv;
-    FILE *arqAtividade;
-    FILE *arqInstrutor;
-    Instrutor Inst;
-    int idxInst, proximo_id = 1;
-    char conf;
-
-    arqAtividade = fopen("atividade.bin", "rb");
-    if (arqAtividade != NULL) {
-        fseek(arqAtividade, 0, 2);
-        proximo_id = (ftell(arqAtividade) / sizeof(Atividade)) + 1;
-        fclose(arqAtividade);
-    }
-
-    arqAtividade = fopen("atividade.bin", "ab");
-    system("cls");
-    if (arqAtividade != NULL) {
-        printf("\n<==== CADASTRO DE ATIVIDADE ====>\n");
-        Atv.id = proximo_id;
-
-        lerTextoApenasLetras("Insira o nome da Atividade: ", Atv.nome, sizeof(Atv.nome));
-
-        // Listar instrutores disponiveis
-        arqInstrutor = fopen("instrutor.bin", "rb");
-        printf("\n--- INSTRUTORES DISPONIVEIS ---");
-        if (arqInstrutor == NULL) {
-            printf("\n(Nenhum instrutor cadastrado)\n");
-        } else {
-            Instrutor tempInst;
-            int temInst = 0;
-            while (fread(&tempInst, sizeof(Instrutor), 1, arqInstrutor) == 1) {
-                printf("\nCPF: %s | Nome: %s | Especialidade: %s", tempInst.cpf, tempInst.nome, tempInst.especialidade);
-                temInst = 1;
-            }
-            fclose(arqInstrutor);
-            if (!temInst) printf("\n(Nenhum instrutor cadastrado)\n");
-            else printf("\n-------------------------------\n");
-        }
-
-        printf("Insira o CPF do Instrutor Responsavel (apenas numeros): ");
-        lerCPF(Atv.cpf_instrutor);
-
-        idxInst = buscaInstrutor(Atv.cpf_instrutor);
-        if (idxInst == -1) {
-            printf("** ATENCAO: Instrutor nao encontrado no cadastro atual. **\n");
-            printf("Deseja continuar o cadastro mesmo assim? (S/N): ");
-            conf = lerOpcaoSN();
-            if (conf == 'N') {
-                fclose(arqAtividade);
-                printf("\n** Cadastro cancelado. **\n");
-                printf("Deseja cadastrar outra atividade? (S/N): ");
-                return lerOpcaoSN();
-            }
-        }
-
-        fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
-        fclose(arqAtividade);
-        printf("\n** Atividade cadastrada com sucesso! **\n");
-
-        printf("Deseja cadastrar outra atividade? (S/N): ");
-        return lerOpcaoSN();
-    } else {
-        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
-        return 'N';
-    }
-}
-
-char cadastrarPacote() {
-    Pacote Pc;
-    FILE *arqPacote;
-    FILE *arqAtividade;
-    Atividade Atv;
-    int proximo_id = 1, idxAtiv, jaExiste, k;
-    char continuar = 'S';
-
-    arqPacote = fopen("pacote.bin", "rb");
-    if (arqPacote != NULL) {
-        fseek(arqPacote, 0, 2);
-        proximo_id = (ftell(arqPacote) / sizeof(Pacote)) + 1;
-        fclose(arqPacote);
-    }
-
-    arqPacote = fopen("pacote.bin", "ab");
-    system("cls");
-    if (arqPacote != NULL) {
-        printf("\n<==== CADASTRO DE PACOTE ====>\n");
-        Pc.id = proximo_id;
-        Pc.qtd_atividades = 0;
-
-        lerTextoApenasLetras("Insira o nome do Pacote: ", Pc.nome, sizeof(Pc.nome));
-
-        while (continuar == 'S' && Pc.qtd_atividades < 10) {
-            int selPos = -1;
-            // Funcao inline de selecao de atividade para o pacote
-            FILE *fAtv = fopen("atividade.bin", "rb");
-            if (fAtv == NULL) {
-                printf("\n** Nenhuma atividade cadastrada! **\n");
-                system("pause");
-                break;
-            }
-            fseek(fAtv, 0, 2);
-            int qtdeAtv = ftell(fAtv) / sizeof(Atividade);
-            fclose(fAtv);
-
-            if (qtdeAtv == 0) {
-                printf("\n** Nenhuma atividade cadastrada! **\n");
-                system("pause");
-                break;
-            }
-
-            int opSub, idAtv;
-            do {
-                system("cls");
-                printf("\n--- SELECIONAR ATIVIDADE ---");
-                printf("\n1. Digitar ID diretamente");
-                printf("\n2. Listar todas as atividades (escolher por numero)");
-                printf("\n0. Cancelar");
-                printf("\nOpcao: ");
-                opSub = lerInteiro();
-
-                if (opSub == 0) {
-                    selPos = -1;
-                    break;
-                } else if (opSub == 1) {
-                    printf("ID da Atividade: ");
-                    idAtv = lerInteiro();
-                    selPos = buscaAtividade(idAtv);
-                    if (selPos == -1) {
-                        printf("** Atividade nao encontrada! **\n");
-                        system("pause");
-                    } else {
-                        break;
-                    }
-                } else if (opSub == 2) {
-                    fAtv = fopen("atividade.bin", "rb");
-                    if (fAtv != NULL) {
-                        printf("\n<=== LISTA DE ATIVIDADES ===>\n");
-                        for (int i = 0; i < qtdeAtv; i++) {
-                            fread(&Atv, sizeof(Atividade), 1, fAtv);
-                            printf("[%d] ID: %d | Nome: %s | CPF Instrutor: %s\n",
-                                   i, Atv.id, Atv.nome, Atv.cpf_instrutor);
-                        }
-                        fclose(fAtv);
-                        printf("----------------------------\n");
-                        printf("Digite o NUMERO entre colchetes (-1 para cancelar): ");
-                        selPos = lerInteiro();
-                        if (selPos == -1) {
-                            selPos = -1;
-                            break;
-                        } else if (selPos >= 0 && selPos < qtdeAtv) {
-                            break;
-                        } else {
-                            printf("\n** Indice invalido! **\n");
-                            system("pause");
-                        }
-                    }
-                }
-            } while (1);
-
-            if (selPos == -1) {
-                break;
-            }
-
-            // Ler a atividade correspondente ao selPos
-            fAtv = fopen("atividade.bin", "rb");
-            fseek(fAtv, selPos * sizeof(Atividade), 0);
-            fread(&Atv, sizeof(Atividade), 1, fAtv);
-            fclose(fAtv);
-
-            jaExiste = 0;
-            for (k = 0; k < Pc.qtd_atividades; k++) {
-                if (Pc.ids_atividades[k] == Atv.id) jaExiste = 1;
-            }
-            if (jaExiste) {
-                printf("** AVISO: Atividade ja esta neste pacote! **\n");
-                system("pause");
-            } else {
-                Pc.ids_atividades[Pc.qtd_atividades] = Atv.id;
-                Pc.qtd_atividades++;
-                printf("** Atividade associada ao pacote! **\n");
-                system("pause");
-            }
-
-            if (Pc.qtd_atividades < 10) {
-                printf("Deseja incluir mais uma atividade neste pacote? (S/N): ");
-                continuar = lerOpcaoSN();
-            }
-        }
-
-        fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
-        fclose(arqPacote);
-        printf("\n** Pacote cadastrado com sucesso! **\n");
-
-        printf("\nDeseja cadastrar outro pacote? (S/N): ");
-        return lerOpcaoSN();
-    } else {
-        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
-        return 'N';
-    }
-}
-
-char cadastrarPlano() {
-    Plano Pl;
-    FILE *arqPlano;
-    int proximo_id = 1;
-    char tipo;
-
-    arqPlano = fopen("plano.bin", "rb");
-    if (arqPlano != NULL) {
-        fseek(arqPlano, 0, 2);
-        proximo_id = (ftell(arqPlano) / sizeof(Plano)) + 1;
-        fclose(arqPlano);
-    }
-
-    arqPlano = fopen("plano.bin", "ab");
-    system("cls");
-    if (arqPlano != NULL) {
-        printf("\n<==== CADASTRO DE PLANO ====>\n");
-        Pl.id = proximo_id;
-
-        lerTextoApenasLetras("Insira o nome do Plano: ", Pl.nome, sizeof(Pl.nome));
-
-        do {
-            printf("Tipo [M-Mensal, T-Trimestral, S-Semestral, A-Anual]: ");
-            fflush(stdin);
-            scanf("%c", &tipo);
-            Pl.tipo = toupper(tipo);
-            if (Pl.tipo != 'M' && Pl.tipo != 'T' && Pl.tipo != 'S' && Pl.tipo != 'A') {
-                printf("** TIPO INVALIDO! Tente novamente. **\n");
-            }
-        } while (Pl.tipo != 'M' && Pl.tipo != 'T' && Pl.tipo != 'S' && Pl.tipo != 'A');
-
-        printf("Insira o valor base (R$): ");
-        Pl.valor_base = lerFloat();
-        while (Pl.valor_base <= 0) {
-            printf("** VALOR INVALIDO! Digite um valor positivo: ");
-            Pl.valor_base = lerFloat();
-        }
-
-        fwrite(&Pl, sizeof(Plano), 1, arqPlano);
-        fclose(arqPlano);
-        printf("\n** Plano cadastrado com sucesso! **\n");
-
-        printf("\nDeseja cadastrar outro plano? (S/N): ");
-        return lerOpcaoSN();
-    } else {
-        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
-        return 'N';
-    }
-}
-
 //<=====SELEÇÃO / BUSCA INTERATIVA=====>
 int selecionarAluno() {
     FILE *arqAluno;
@@ -1134,6 +800,251 @@ int selecionarPlano() {
     }
 }
 
+//<=====CADASTROS=====>
+char cadastrarAluno() {
+    Aluno Al;
+    FILE *arqAluno;
+    arqAluno = fopen("aluno.bin", "ab");
+    
+    char temp_cpf[20];
+    int idx;
+
+    system("cls");
+    if (arqAluno != NULL) {
+        printf("\n<==== CADASTRO DE ALUNO ====>\n");
+        printf("Insira o CPF (apenas numeros): ");
+        lerCPF(temp_cpf);
+
+        idx = buscaAluno(temp_cpf);
+        if (idx != -1) { 
+            printf("\n** ERRO: CPF ja cadastrado! **\n");
+        } 
+        else {
+            strcpy(Al.cpf, temp_cpf);
+            lerTextoApenasLetras("Insira o nome completo: ", Al.nome, sizeof(Al.nome));
+
+            printf("Insira o telefone: ");
+            fflush(stdin);
+            scanf("%19s", Al.telefone);
+
+            Al.id_pacote = -1;
+            Al.id_plano = -1;
+            Al.status_matricula = 0;
+
+            fwrite(&Al, sizeof(Aluno), 1, arqAluno);
+            printf("\n** Aluno cadastrado com sucesso! **\n");
+        }
+
+        fclose(arqAluno); 
+
+        printf("\nDeseja cadastrar outro aluno? (S/N): ");
+        return lerOpcaoSN();
+    } else {
+        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
+        return 'N';
+    }
+}
+
+char cadastrarInstrutor() {
+    Instrutor Inst;
+    FILE *arqInstrutor;
+    arqInstrutor = fopen("instrutor.bin", "ab"); 
+    
+    char temp_cpf[20];
+    int idx;
+
+    system("cls");
+    if (arqInstrutor != NULL) {
+        printf("\n<==== CADASTRO DE INSTRUTOR ====>\n");
+        printf("Insira o CPF (apenas numeros): ");
+        lerCPF(temp_cpf);
+
+        idx = buscaInstrutor(temp_cpf);
+        if (idx != -1) { 
+            printf("\n** ERRO: CPF ja cadastrado! **\n");
+        } 
+        else {
+            strcpy(Inst.cpf, temp_cpf);
+            lerTextoApenasLetras("Insira o nome completo: ", Inst.nome, sizeof(Inst.nome));
+            lerTextoApenasLetras("Insira a especialidade: ", Inst.especialidade, sizeof(Inst.especialidade));
+
+            fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+            printf("\n** Instrutor cadastrado com sucesso! **\n");
+        }
+
+        fclose(arqInstrutor); 
+
+        printf("\nDeseja cadastrar outro instrutor? (S/N): ");
+        return lerOpcaoSN();
+    } else {
+        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
+        return 'N';
+    }
+}
+
+char cadastrarAtividade() {
+    Atividade Atv;
+    FILE *arqAtividade;
+    int proximo_id = 1, idxInst;
+
+    arqAtividade = fopen("atividade.bin", "rb");
+    if (arqAtividade != NULL) {
+        fseek(arqAtividade, 0, 2);
+        proximo_id = (ftell(arqAtividade) / sizeof(Atividade)) + 1;
+        fclose(arqAtividade);
+    }
+
+    arqAtividade = fopen("atividade.bin", "ab");
+    system("cls");
+    if (arqAtividade != NULL) {
+        printf("\n<==== CADASTRO DE ATIVIDADE ====>\n");
+        Atv.id = proximo_id;
+
+        lerTextoApenasLetras("Insira o nome da Atividade: ", Atv.nome, sizeof(Atv.nome));
+
+        idxInst = selecionarInstrutor();
+        if (idxInst == -1) {
+            fclose(arqAtividade);
+            printf("\n** Cadastro de atividade cancelado por falta de instrutor. **\n");
+            system("pause");
+            return 'N';
+        }
+
+        FILE *arqInstrutor = fopen("instrutor.bin", "rb");
+        Instrutor tempInst;
+        fseek(arqInstrutor, idxInst * sizeof(Instrutor), 0);
+        fread(&tempInst, sizeof(Instrutor), 1, arqInstrutor);
+        fclose(arqInstrutor);
+        strcpy(Atv.cpf_instrutor, tempInst.cpf);
+
+        fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
+        fclose(arqAtividade);
+        printf("\n** Atividade cadastrada com sucesso! **\n");
+
+        printf("Deseja cadastrar outra atividade? (S/N): ");
+        return lerOpcaoSN();
+    } else {
+        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
+        return 'N';
+    }
+}
+
+char cadastrarPacote() {
+    Pacote Pc;
+    FILE *arqPacote;
+    int proximo_id = 1, idxAtiv, jaExiste, k;
+    char continuar = 'S';
+
+    arqPacote = fopen("pacote.bin", "rb");
+    if (arqPacote != NULL) {
+        fseek(arqPacote, 0, 2);
+        proximo_id = (ftell(arqPacote) / sizeof(Pacote)) + 1;
+        fclose(arqPacote);
+    }
+
+    arqPacote = fopen("pacote.bin", "ab");
+    system("cls");
+    if (arqPacote != NULL) {
+        printf("\n<==== CADASTRO DE PACOTE ====>\n");
+        Pc.id = proximo_id;
+        Pc.qtd_atividades = 0;
+
+        lerTextoApenasLetras("Insira o nome do Pacote: ", Pc.nome, sizeof(Pc.nome));
+
+        while (continuar == 'S' && Pc.qtd_atividades < 10) {
+            idxAtiv = selecionarAtividade();
+            if (idxAtiv == -1) {
+                break;
+            }
+
+            Atividade Atv;
+            FILE *arqAtividade = fopen("atividade.bin", "rb");
+            fseek(arqAtividade, idxAtiv * sizeof(Atividade), 0);
+            fread(&Atv, sizeof(Atividade), 1, arqAtividade);
+            fclose(arqAtividade);
+
+            jaExiste = 0;
+            for (k = 0; k < Pc.qtd_atividades; k++) {
+                if (Pc.ids_atividades[k] == Atv.id) jaExiste = 1;
+            }
+            if (jaExiste) {
+                printf("** AVISO: Atividade ja esta neste pacote! **\n");
+                system("pause");
+            } else {
+                Pc.ids_atividades[Pc.qtd_atividades] = Atv.id;
+                Pc.qtd_atividades++;
+                printf("** Atividade associada ao pacote! **\n");
+                system("pause");
+            }
+
+            if (Pc.qtd_atividades < 10) {
+                printf("Deseja incluir mais uma atividade neste pacote? (S/N): ");
+                continuar = lerOpcaoSN();
+            }
+        }
+
+        fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
+        fclose(arqPacote);
+        printf("\n** Pacote cadastrado com sucesso! **\n");
+
+        printf("\nDeseja cadastrar outro pacote? (S/N): ");
+        return lerOpcaoSN();
+    } else {
+        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
+        return 'N';
+    }
+}
+
+char cadastrarPlano() {
+    Plano Pl;
+    FILE *arqPlano;
+    int proximo_id = 1;
+    char tipo;
+
+    arqPlano = fopen("plano.bin", "rb");
+    if (arqPlano != NULL) {
+        fseek(arqPlano, 0, 2);
+        proximo_id = (ftell(arqPlano) / sizeof(Plano)) + 1;
+        fclose(arqPlano);
+    }
+
+    arqPlano = fopen("plano.bin", "ab");
+    system("cls");
+    if (arqPlano != NULL) {
+        printf("\n<==== CADASTRO DE PLANO ====>\n");
+        Pl.id = proximo_id;
+
+        lerTextoApenasLetras("Insira o nome do Plano: ", Pl.nome, sizeof(Pl.nome));
+
+        do {
+            printf("Tipo [M-Mensal, T-Trimestral, S-Semestral, A-Anual]: ");
+            fflush(stdin);
+            scanf("%c", &tipo);
+            Pl.tipo = toupper(tipo);
+            if (Pl.tipo != 'M' && Pl.tipo != 'T' && Pl.tipo != 'S' && Pl.tipo != 'A') {
+                printf("** TIPO INVALIDO! Tente novamente. **\n");
+            }
+        } while (Pl.tipo != 'M' && Pl.tipo != 'T' && Pl.tipo != 'S' && Pl.tipo != 'A');
+
+        printf("Insira o valor base (R$): ");
+        Pl.valor_base = lerFloat();
+        while (Pl.valor_base <= 0) {
+            printf("** VALOR INVALIDO! Digite um valor positivo: ");
+            Pl.valor_base = lerFloat();
+        }
+
+        fwrite(&Pl, sizeof(Plano), 1, arqPlano);
+        fclose(arqPlano);
+        printf("\n** Plano cadastrado com sucesso! **\n");
+
+        printf("\nDeseja cadastrar outro plano? (S/N): ");
+        return lerOpcaoSN();
+    } else {
+        printf("\n** ERRO: Arquivo com erro ao abrir! **\n");
+        return 'N';
+    }
+}
+
 //<=====CONSULTAS=====>
 void consultarAluno() 
 {
@@ -1280,44 +1191,48 @@ void consultarPessoas()
     } while (op != 0);
 }
 
-//<=====EXCLUSÕES=====>
+//<=====EXCLUSÕES COM VERIFICAÇÃO COMPLETA DE DEPENDÊNCIAS=====>
 void excluirAlunoReal() {
-    FILE *arquivo, *temp;
+    FILE *arqAluno, *arqTemp;
     Aluno Al;
-    int pos, j, temDependencia = 0;
+    int pos, temMatriculaAtiva = 0, temBoletos = 0;
 
     pos = selecionarAluno();
-    if (pos == -1) {
-        return;
-    }
+    if (pos == -1) return;
 
-    arquivo = fopen("aluno.bin", "rb");
-    fseek(arquivo, pos * sizeof(Aluno), 0);
-    fread(&Al, sizeof(Aluno), 1, arquivo);
-    fclose(arquivo);
+    arqAluno = fopen("aluno.bin", "rb");
+    fseek(arqAluno, pos * sizeof(Aluno), 0);
+    fread(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
 
     if (Al.status_matricula == 1) {
-        printf("\n** AVISO: Aluno possui matricula ATIVA! **\n");
-        printf("Deseja realmente excluir mesmo assim? (S/N): ");
-        if (lerOpcaoSN() == 'N') return;
+        temMatriculaAtiva = 1;
     }
 
-    // Verificar dependencias em Recebimentos
-    FILE *arqRec = fopen("recebimento.bin", "rb");
-    if (arqRec != NULL) {
+    FILE *arqRecebimento = fopen("recebimento.bin", "rb");
+    if (arqRecebimento != NULL) {
         Recebimento Rec;
-        while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+        while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
             if (strcmp(Rec.cpf_aluno, Al.cpf) == 0) {
-                temDependencia = 1;
+                temBoletos = 1;
                 break;
             }
         }
-        fclose(arqRec);
+        fclose(arqRecebimento);
     }
 
-    if (temDependencia) {
-        printf("\n** AVISO: Aluno possui boletos/recebimentos registrados! **\n");
-        printf("Deseja realmente excluir? (S/N): ");
+    if (temMatriculaAtiva || temBoletos) {
+        printf("\n**************************************************");
+        printf("\n**          AVISO DE PENDENCIAS DO ALUNO        **");
+        printf("\n**************************************************");
+        if (temMatriculaAtiva) {
+            printf("\n- Aluno possui MATRICULA ATIVA no sistema!");
+        }
+        if (temBoletos) {
+            printf("\n- Aluno possui BOLETOS / RECEBIMENTOS registrados!");
+        }
+        printf("\n--------------------------------------------------");
+        printf("\nDeseja realmente excluir este aluno mesmo com essas pendencias? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
     }
 
@@ -1327,29 +1242,29 @@ void excluirAlunoReal() {
     printf("\nCPF: %s", Al.cpf);
     printf("\nTelefone: %s", Al.telefone);
     printf("\n-------------------");
-    printf("\nDeseja realmente excluir? (S/N): ");
+    printf("\nConfirmar exclusao definitiva? (S/N): ");
     
     if (lerOpcaoSN() == 'S') {
         char cpfExcluir[15];
         strcpy(cpfExcluir, Al.cpf);
 
-        arquivo = fopen("aluno.bin", "rb");
-        temp = fopen("auxiliar.bin", "wb");
+        arqAluno = fopen("aluno.bin", "rb");
+        arqTemp = fopen("auxiliar.bin", "wb");
         
-        if (arquivo != NULL && temp != NULL) {
-            while (fread(&Al, sizeof(Aluno), 1, arquivo) == 1) {
+        if (arqAluno != NULL && arqTemp != NULL) {
+            while (fread(&Al, sizeof(Aluno), 1, arqAluno) == 1) {
                 if (strcmp(Al.cpf, cpfExcluir) != 0) {
-                    fwrite(&Al, sizeof(Aluno), 1, temp);
+                    fwrite(&Al, sizeof(Aluno), 1, arqTemp);
                 }
             }
-            fclose(temp);
-            fclose(arquivo);
+            fclose(arqTemp);
+            fclose(arqAluno);
             remove("aluno.bin");
             rename("auxiliar.bin", "aluno.bin");
             printf("\n** O aluno foi excluido com sucesso! **\n");
         } else {
-            if (arquivo) fclose(arquivo);
-            if (temp) fclose(temp);
+            if (arqAluno) fclose(arqAluno);
+            if (arqTemp) fclose(arqTemp);
             printf("\n** Erro ao manipular os arquivos! **\n");
         }
     }
@@ -1357,36 +1272,37 @@ void excluirAlunoReal() {
 }
 
 void excluirInstrutor() {
-    FILE *arquivo, *temp;
+    FILE *arqInstrutor, *arqTemp;
     Instrutor Inst;
-    int pos, temDependencia = 0;
+    int pos, atividadesVinculadas = 0;
 
     pos = selecionarInstrutor();
-    if (pos == -1) {
-        return;
-    }
+    if (pos == -1) return;
 
-    arquivo = fopen("instrutor.bin", "rb");
-    fseek(arquivo, pos * sizeof(Instrutor), 0);
-    fread(&Inst, sizeof(Instrutor), 1, arquivo);
-    fclose(arquivo);
+    arqInstrutor = fopen("instrutor.bin", "rb");
+    fseek(arqInstrutor, pos * sizeof(Instrutor), 0);
+    fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+    fclose(arqInstrutor);
 
-    // Verificar dependencias em Atividades
-    FILE *arqAtv = fopen("atividade.bin", "rb");
-    if (arqAtv != NULL) {
+    FILE *arqAtividade = fopen("atividade.bin", "rb");
+    if (arqAtividade != NULL) {
         Atividade Atv;
-        while (fread(&Atv, sizeof(Atividade), 1, arqAtv) == 1) {
+        while (fread(&Atv, sizeof(Atividade), 1, arqAtividade) == 1) {
             if (strcmp(Atv.cpf_instrutor, Inst.cpf) == 0) {
-                temDependencia = 1;
+                atividadesVinculadas = 1;
                 break;
             }
         }
-        fclose(arqAtv);
+        fclose(arqAtividade);
     }
 
-    if (temDependencia) {
-        printf("\n** AVISO: Instrutor possui atividades vinculadas! **\n");
-        printf("Deseja realmente excluir? (S/N): ");
+    if (atividadesVinculadas) {
+        printf("\n**************************************************");
+        printf("\n**        AVISO DE VINCULOS DO INSTRUTOR        **");
+        printf("\n**************************************************");
+        printf("\n- O instrutor possui ATIVIDADES VINCULADAS a ele!");
+        printf("\n--------------------------------------------------");
+        printf("\nDeseja realmente excluir mesmo com essas atividades? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
     }
 
@@ -1396,29 +1312,29 @@ void excluirInstrutor() {
     printf("\nCPF: %s", Inst.cpf);
     printf("\nEspecialidade: %s", Inst.especialidade);
     printf("\n-------------------");
-    printf("\nDeseja realmente excluir? (S/N): ");
+    printf("\nConfirmar exclusao definitiva? (S/N): ");
     
     if (lerOpcaoSN() == 'S') {
         char cpfExcluir[15];
         strcpy(cpfExcluir, Inst.cpf);
 
-        arquivo = fopen("instrutor.bin", "rb");
-        temp = fopen("auxiliar.bin", "wb");
+        arqInstrutor = fopen("instrutor.bin", "rb");
+        arqTemp = fopen("auxiliar.bin", "wb");
         
-        if (arquivo != NULL && temp != NULL) {
-            while (fread(&Inst, sizeof(Instrutor), 1, arquivo) == 1) {
+        if (arqInstrutor != NULL && arqTemp != NULL) {
+            while (fread(&Inst, sizeof(Instrutor), 1, arqInstrutor) == 1) {
                 if (strcmp(Inst.cpf, cpfExcluir) != 0) {
-                    fwrite(&Inst, sizeof(Instrutor), 1, temp);
+                    fwrite(&Inst, sizeof(Instrutor), 1, arqTemp);
                 }
             }
-            fclose(temp);
-            fclose(arquivo);
+            fclose(arqTemp);
+            fclose(arqInstrutor);
             remove("instrutor.bin");
             rename("auxiliar.bin", "instrutor.bin");
             printf("\n** O instrutor foi excluido com sucesso! **\n");
         } else {
-            if (arquivo) fclose(arquivo);
-            if (temp) fclose(temp);
+            if (arqInstrutor) fclose(arqInstrutor);
+            if (arqTemp) fclose(arqTemp);
             printf("\n** Erro ao manipular os arquivos! **\n");
         }
     }
@@ -1426,37 +1342,40 @@ void excluirInstrutor() {
 }
 
 void excluirAtividade() {
-    FILE *arquivo, *temp;
+    FILE *arqAtividade, *arqTemp;
     Atividade Atv;
-    int pos, temDependencia = 0;
+    int pos, pacotesVinculados = 0;
 
     pos = selecionarAtividade();
     if (pos == -1) return;
 
-    arquivo = fopen("atividade.bin", "rb");
-    fseek(arquivo, pos * sizeof(Atividade), 0);
-    fread(&Atv, sizeof(Atividade), 1, arquivo);
-    fclose(arquivo);
+    arqAtividade = fopen("atividade.bin", "rb");
+    fseek(arqAtividade, pos * sizeof(Atividade), 0);
+    fread(&Atv, sizeof(Atividade), 1, arqAtividade);
+    fclose(arqAtividade);
 
-    // Verificar dependencias em Pacotes
-    FILE *arqPc = fopen("pacote.bin", "rb");
-    if (arqPc != NULL) {
+    FILE *arqPacote = fopen("pacote.bin", "rb");
+    if (arqPacote != NULL) {
         Pacote Pc;
-        while (fread(&Pc, sizeof(Pacote), 1, arqPc) == 1) {
+        while (fread(&Pc, sizeof(Pacote), 1, arqPacote) == 1) {
             for (int j = 0; j < Pc.qtd_atividades; j++) {
                 if (Pc.ids_atividades[j] == Atv.id) {
-                    temDependencia = 1;
+                    pacotesVinculados = 1;
                     break;
                 }
             }
-            if (temDependencia) break;
+            if (pacotesVinculados) break;
         }
-        fclose(arqPc);
+        fclose(arqPacote);
     }
 
-    if (temDependencia) {
-        printf("\n** AVISO: Atividade esta vinculada a um ou mais pacotes! **\n");
-        printf("Deseja realmente excluir? (S/N): ");
+    if (pacotesVinculados) {
+        printf("\n**************************************************");
+        printf("\n**         AVISO DE VINCULOS DA ATIVIDADE       **");
+        printf("\n**************************************************");
+        printf("\n- A atividade esta associada a um ou mais PACOTES!");
+        printf("\n--------------------------------------------------");
+        printf("\nDeseja realmente excluir mesmo assim? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
     }
 
@@ -1465,21 +1384,21 @@ void excluirAtividade() {
     printf("\nID: %d", Atv.id);
     printf("\nNome: %s", Atv.nome);
     printf("\n-------------------");
-    printf("\nDeseja realmente excluir? (S/N): ");
+    printf("\nConfirmar exclusao definitiva? (S/N): ");
 
     if (lerOpcaoSN() == 'S') {
         int idExcluir = Atv.id;
-        arquivo = fopen("atividade.bin", "rb");
-        temp = fopen("auxiliar.bin", "wb");
+        arqAtividade = fopen("atividade.bin", "rb");
+        arqTemp = fopen("auxiliar.bin", "wb");
 
-        if (arquivo != NULL && temp != NULL) {
-            while (fread(&Atv, sizeof(Atividade), 1, arquivo) == 1) {
+        if (arqAtividade != NULL && arqTemp != NULL) {
+            while (fread(&Atv, sizeof(Atividade), 1, arqAtividade) == 1) {
                 if (Atv.id != idExcluir) {
-                    fwrite(&Atv, sizeof(Atividade), 1, temp);
+                    fwrite(&Atv, sizeof(Atividade), 1, arqTemp);
                 }
             }
-            fclose(temp);
-            fclose(arquivo);
+            fclose(arqTemp);
+            fclose(arqAtividade);
             remove("atividade.bin");
             rename("auxiliar.bin", "atividade.bin");
             printf("\n** A atividade foi excluida com sucesso! **\n");
@@ -1489,34 +1408,37 @@ void excluirAtividade() {
 }
 
 void excluirPacote() {
-    FILE *arquivo, *temp;
+    FILE *arqPacote, *arqTemp;
     Pacote Pc;
-    int pos, temDependencia = 0;
+    int pos, alunosAtivosVinculados = 0;
 
     pos = selecionarPacote();
     if (pos == -1) return;
 
-    arquivo = fopen("pacote.bin", "rb");
-    fseek(arquivo, pos * sizeof(Pacote), 0);
-    fread(&Pc, sizeof(Pacote), 1, arquivo);
-    fclose(arquivo);
+    arqPacote = fopen("pacote.bin", "rb");
+    fseek(arqPacote, pos * sizeof(Pacote), 0);
+    fread(&Pc, sizeof(Pacote), 1, arqPacote);
+    fclose(arqPacote);
 
-    // Verificar dependencias em Alunos
-    FILE *arqAl = fopen("aluno.bin", "rb");
-    if (arqAl != NULL) {
+    FILE *arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno != NULL) {
         Aluno Al;
-        while (fread(&Al, sizeof(Aluno), 1, arqAl) == 1) {
+        while (fread(&Al, sizeof(Aluno), 1, arqAluno) == 1) {
             if (Al.id_pacote == Pc.id && Al.status_matricula == 1) {
-                temDependencia = 1;
+                alunosAtivosVinculados = 1;
                 break;
             }
         }
-        fclose(arqAl);
+        fclose(arqAluno);
     }
 
-    if (temDependencia) {
-        printf("\n** AVISO: Pacote esta vinculado a alunos com matricula ativa! **\n");
-        printf("Deseja realmente excluir? (S/N): ");
+    if (alunosAtivosVinculados) {
+        printf("\n**************************************************");
+        printf("\n**          AVISO DE VINCULOS DO PACOTE         **");
+        printf("\n**************************************************");
+        printf("\n- O pacote esta vinculado a ALUNOS COM MATRICULA ATIVA!");
+        printf("\n--------------------------------------------------");
+        printf("\nDeseja realmente excluir mesmo assim? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
     }
 
@@ -1525,21 +1447,21 @@ void excluirPacote() {
     printf("\nID: %d", Pc.id);
     printf("\nNome: %s", Pc.nome);
     printf("\n-------------------");
-    printf("\nDeseja realmente excluir? (S/N): ");
+    printf("\nConfirmar exclusao definitiva? (S/N): ");
 
     if (lerOpcaoSN() == 'S') {
         int idExcluir = Pc.id;
-        arquivo = fopen("pacote.bin", "rb");
-        temp = fopen("auxiliar.bin", "wb");
+        arqPacote = fopen("pacote.bin", "rb");
+        arqTemp = fopen("auxiliar.bin", "wb");
 
-        if (arquivo != NULL && temp != NULL) {
-            while (fread(&Pc, sizeof(Pacote), 1, arquivo) == 1) {
+        if (arqPacote != NULL && arqTemp != NULL) {
+            while (fread(&Pc, sizeof(Pacote), 1, arqPacote) == 1) {
                 if (Pc.id != idExcluir) {
-                    fwrite(&Pc, sizeof(Pacote), 1, temp);
+                    fwrite(&Pc, sizeof(Pacote), 1, arqTemp);
                 }
             }
-            fclose(temp);
-            fclose(arquivo);
+            fclose(arqTemp);
+            fclose(arqPacote);
             remove("pacote.bin");
             rename("auxiliar.bin", "pacote.bin");
             printf("\n** O pacote foi excluido com sucesso! **\n");
@@ -1549,34 +1471,37 @@ void excluirPacote() {
 }
 
 void excluirPlano() {
-    FILE *arquivo, *temp;
+    FILE *arqPlano, *arqTemp;
     Plano Pl;
-    int pos, temDependencia = 0;
+    int pos, alunosAtivosVinculados = 0;
 
     pos = selecionarPlano();
     if (pos == -1) return;
 
-    arquivo = fopen("plano.bin", "rb");
-    fseek(arquivo, pos * sizeof(Plano), 0);
-    fread(&Pl, sizeof(Plano), 1, arquivo);
-    fclose(arquivo);
+    arqPlano = fopen("plano.bin", "rb");
+    fseek(arqPlano, pos * sizeof(Plano), 0);
+    fread(&Pl, sizeof(Plano), 1, arqPlano);
+    fclose(arqPlano);
 
-    // Verificar dependencias em Alunos
-    FILE *arqAl = fopen("aluno.bin", "rb");
-    if (arqAl != NULL) {
+    FILE *arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno != NULL) {
         Aluno Al;
-        while (fread(&Al, sizeof(Aluno), 1, arqAl) == 1) {
+        while (fread(&Al, sizeof(Aluno), 1, arqAluno) == 1) {
             if (Al.id_plano == Pl.id && Al.status_matricula == 1) {
-                temDependencia = 1;
+                alunosAtivosVinculados = 1;
                 break;
             }
         }
-        fclose(arqAl);
+        fclose(arqAluno);
     }
 
-    if (temDependencia) {
-        printf("\n** AVISO: Plano esta vinculado a alunos com matricula ativa! **\n");
-        printf("Deseja realmente excluir? (S/N): ");
+    if (alunosAtivosVinculados) {
+        printf("\n**************************************************");
+        printf("\n**          AVISO DE VINCULOS DO PLANO          **");
+        printf("\n**************************************************");
+        printf("\n- O plano esta vinculado a ALUNOS COM MATRICULA ATIVA!");
+        printf("\n--------------------------------------------------");
+        printf("\nDeseja realmente excluir mesmo assim? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
     }
 
@@ -1585,21 +1510,21 @@ void excluirPlano() {
     printf("\nID: %d", Pl.id);
     printf("\nNome: %s", Pl.nome);
     printf("\n-------------------");
-    printf("\nDeseja realmente excluir? (S/N): ");
+    printf("\nConfirmar exclusao definitiva? (S/N): ");
 
     if (lerOpcaoSN() == 'S') {
         int idExcluir = Pl.id;
-        arquivo = fopen("plano.bin", "rb");
-        temp = fopen("auxiliar.bin", "wb");
+        arqPlano = fopen("plano.bin", "rb");
+        arqTemp = fopen("auxiliar.bin", "wb");
 
-        if (arquivo != NULL && temp != NULL) {
-            while (fread(&Pl, sizeof(Plano), 1, arquivo) == 1) {
+        if (arqPlano != NULL && arqTemp != NULL) {
+            while (fread(&Pl, sizeof(Plano), 1, arqPlano) == 1) {
                 if (Pl.id != idExcluir) {
-                    fwrite(&Pl, sizeof(Plano), 1, temp);
+                    fwrite(&Pl, sizeof(Plano), 1, arqTemp);
                 }
             }
-            fclose(temp);
-            fclose(arquivo);
+            fclose(arqTemp);
+            fclose(arqPlano);
             remove("plano.bin");
             rename("auxiliar.bin", "plano.bin");
             printf("\n** O plano foi excluido com sucesso! **\n");
@@ -1641,21 +1566,21 @@ float calcularDescontoPlano(float valorBase, char tipoPlano) {
 
 int existeBoleto(char cpf[], int mes) {
     Recebimento Rec;
-    FILE *arq = fopen("recebimento.bin", "rb");
-    if (arq == NULL) return 0;
-    while (fread(&Rec, sizeof(Recebimento), 1, arq) == 1) {
+    FILE *arqRecebimento = fopen("recebimento.bin", "rb");
+    if (arqRecebimento == NULL) return 0;
+    while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
         if (strcmp(Rec.cpf_aluno, cpf) == 0 && Rec.mes_referencia == mes) {
-            fclose(arq);
+            fclose(arqRecebimento);
             return 1;
         }
     }
-    fclose(arq);
+    fclose(arqRecebimento);
     return 0;
 }
 
 void gerarProximoBoleto(char cpf[], int proximoMes, float valor) {
     Recebimento Rec;
-    FILE *arq;
+    FILE *arqRecebimento;
     int proximo_id = 1;
 
     if (existeBoleto(cpf, proximoMes)) {
@@ -1663,22 +1588,22 @@ void gerarProximoBoleto(char cpf[], int proximoMes, float valor) {
         return;
     }
 
-    arq = fopen("recebimento.bin", "rb");
-    if (arq != NULL) {
-        fseek(arq, 0, 2);
-        proximo_id = (ftell(arq) / sizeof(Recebimento)) + 1;
-        fclose(arq);
+    arqRecebimento = fopen("recebimento.bin", "rb");
+    if (arqRecebimento != NULL) {
+        fseek(arqRecebimento, 0, 2);
+        proximo_id = (ftell(arqRecebimento) / sizeof(Recebimento)) + 1;
+        fclose(arqRecebimento);
     }
 
-    arq = fopen("recebimento.bin", "ab");
-    if (arq != NULL) {
+    arqRecebimento = fopen("recebimento.bin", "ab");
+    if (arqRecebimento != NULL) {
         Rec.id_recebimento = proximo_id;
         strcpy(Rec.cpf_aluno, cpf);
         Rec.mes_referencia = proximoMes;
         Rec.valor_cobrado = valor;
         Rec.status_pago = 0;
-        fwrite(&Rec, sizeof(Recebimento), 1, arq);
-        fclose(arq);
+        fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
+        fclose(arqRecebimento);
         printf("\n[BOLETO GERADO] Novo boleto para o mes %d no valor de R$ %.2f\n", proximoMes, valor);
     }
 }
@@ -1689,7 +1614,7 @@ void efetuarMatricula() {
     Aluno Al;
     Plano Pl;
     Pacote Pc;
-    FILE *arq;
+    FILE *arqAluno, *arqPlano, *arqPacote;
 
     system("cls");
     printf("\n<==== EFETUAR MATRICULA ====>\n");
@@ -1697,10 +1622,10 @@ void efetuarMatricula() {
     idxAluno = selecionarAluno();
     if (idxAluno == -1) return;
 
-    arq = fopen("aluno.bin", "rb");
-    fseek(arq, idxAluno * sizeof(Aluno), 0);
-    fread(&Al, sizeof(Aluno), 1, arq);
-    fclose(arq);
+    arqAluno = fopen("aluno.bin", "rb");
+    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+    fread(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
 
     if (Al.status_matricula == 1) {
         printf("\n** ERRO: Aluno ja possui matricula ATIVA! **\n");
@@ -1711,18 +1636,18 @@ void efetuarMatricula() {
     idxPlano = selecionarPlano();
     if (idxPlano == -1) return;
 
-    arq = fopen("plano.bin", "rb");
-    fseek(arq, idxPlano * sizeof(Plano), 0);
-    fread(&Pl, sizeof(Plano), 1, arq);
-    fclose(arq);
+    arqPlano = fopen("plano.bin", "rb");
+    fseek(arqPlano, idxPlano * sizeof(Plano), 0);
+    fread(&Pl, sizeof(Plano), 1, arqPlano);
+    fclose(arqPlano);
 
     idxPacote = selecionarPacote();
     if (idxPacote == -1) return;
 
-    arq = fopen("pacote.bin", "rb");
-    fseek(arq, idxPacote * sizeof(Pacote), 0);
-    fread(&Pc, sizeof(Pacote), 1, arq);
-    fclose(arq);
+    arqPacote = fopen("pacote.bin", "rb");
+    fseek(arqPacote, idxPacote * sizeof(Pacote), 0);
+    fread(&Pc, sizeof(Pacote), 1, arqPacote);
+    fclose(arqPacote);
 
     printf("Mes inicial da cobranca (1-12): ");
     do {
@@ -1732,15 +1657,14 @@ void efetuarMatricula() {
 
     valorFinal = calcularDescontoPlano(Pl.valor_base, Pl.tipo);
 
-    // Atualizar aluno no arquivo
     Al.id_plano = Pl.id;
     Al.id_pacote = Pc.id;
     Al.status_matricula = 1;
 
-    arq = fopen("aluno.bin", "rb+");
-    fseek(arq, idxAluno * sizeof(Aluno), 0);
-    fwrite(&Al, sizeof(Aluno), 1, arq);
-    fclose(arq);
+    arqAluno = fopen("aluno.bin", "rb+");
+    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+    fwrite(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
 
     printf("\n[MATRICULA REGISTRADA]");
     printf("\nAluno: %s", Al.nome);
@@ -1755,7 +1679,7 @@ void efetuarCancelamento() {
     float valor, multa, reembolso;
     Aluno Al;
     Plano Pl;
-    FILE *arq;
+    FILE *arqAluno, *arqPlano;
 
     system("cls");
     printf("\n<==== CANCELAMENTO DE MATRICULA ====>\n");
@@ -1763,10 +1687,10 @@ void efetuarCancelamento() {
     idxAluno = selecionarAluno();
     if (idxAluno == -1) return;
 
-    arq = fopen("aluno.bin", "rb");
-    fseek(arq, idxAluno * sizeof(Aluno), 0);
-    fread(&Al, sizeof(Aluno), 1, arq);
-    fclose(arq);
+    arqAluno = fopen("aluno.bin", "rb");
+    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+    fread(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
 
     if (Al.status_matricula == 0) {
         printf("\n** ERRO: Aluno nao possui matricula ativa! **\n");
@@ -1778,10 +1702,10 @@ void efetuarCancelamento() {
     if (idxPlano == -1) {
         printf("\n** AVISO: Plano vinculado nao existe mais. Cancelamento sera aplicado sem calculo de multa. **\n");
     } else {
-        arq = fopen("plano.bin", "rb");
-        fseek(arq, idxPlano * sizeof(Plano), 0);
-        fread(&Pl, sizeof(Plano), 1, arq);
-        fclose(arq);
+        arqPlano = fopen("plano.bin", "rb");
+        fseek(arqPlano, idxPlano * sizeof(Plano), 0);
+        fread(&Pl, sizeof(Plano), 1, arqPlano);
+        fclose(arqPlano);
 
         valor = Pl.valor_base;
         if (Pl.tipo != 'M') {
@@ -1798,10 +1722,10 @@ void efetuarCancelamento() {
     Al.id_plano = -1;
     Al.id_pacote = -1;
 
-    arq = fopen("aluno.bin", "rb+");
-    fseek(arq, idxAluno * sizeof(Aluno), 0);
-    fwrite(&Al, sizeof(Aluno), 1, arq);
-    fclose(arq);
+    arqAluno = fopen("aluno.bin", "rb+");
+    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+    fwrite(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
 
     printf("\n** Matricula cancelada com sucesso! **\n");
     system("pause");
@@ -1811,7 +1735,7 @@ void efetuarRecebimento() {
     int idxAluno, mes, achou = 0;
     Aluno Al;
     Recebimento Rec;
-    FILE *arqAl, *arqRec;
+    FILE *arqAluno, *arqRecebimento;
 
     system("cls");
     printf("\n<==== REGISTRAR RECEBIMENTO ====>\n");
@@ -1819,10 +1743,10 @@ void efetuarRecebimento() {
     idxAluno = selecionarAluno();
     if (idxAluno == -1) return;
 
-    arqAl = fopen("aluno.bin", "rb");
-    fseek(arqAl, idxAluno * sizeof(Aluno), 0);
-    fread(&Al, sizeof(Aluno), 1, arqAl);
-    fclose(arqAl);
+    arqAluno = fopen("aluno.bin", "rb");
+    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+    fread(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
 
     printf("Mes do Boleto (1-12): ");
     do {
@@ -1830,18 +1754,18 @@ void efetuarRecebimento() {
         if (mes < 1 || mes > 12) printf("** MES INVALIDO! Digite de 1 a 12: ");
     } while (mes < 1 || mes > 12);
 
-    arqRec = fopen("recebimento.bin", "rb+");
-    if (arqRec != NULL) {
+    arqRecebimento = fopen("recebimento.bin", "rb+");
+    if (arqRecebimento != NULL) {
         long pos = 0;
-        while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+        while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
             if (strcmp(Rec.cpf_aluno, Al.cpf) == 0 && Rec.mes_referencia == mes) {
                 achou = 1;
                 if (Rec.status_pago == 1) {
                     printf("\n** Boleto ja pago anteriormente! **\n");
                 } else {
                     Rec.status_pago = 1;
-                    fseek(arqRec, pos, 0);
-                    fwrite(&Rec, sizeof(Recebimento), 1, arqRec);
+                    fseek(arqRecebimento, pos, 0);
+                    fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
                     printf("\n** Boleto #%d Pago com sucesso! Valor: R$ %.2f **\n", Rec.id_recebimento, Rec.valor_cobrado);
                     if (mes < 12) {
                         gerarProximoBoleto(Al.cpf, mes + 1, Rec.valor_cobrado);
@@ -1851,9 +1775,9 @@ void efetuarRecebimento() {
                 }
                 break;
             }
-            pos = ftell(arqRec);
+            pos = ftell(arqRecebimento);
         }
-        fclose(arqRec);
+        fclose(arqRecebimento);
     }
 
     if (!achou) printf("\n** Nenhum boleto pendente localizado para este CPF e mes. **\n");
