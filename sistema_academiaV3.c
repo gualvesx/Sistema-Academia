@@ -1,8 +1,8 @@
-#include<stdio.h>
-#include<ctype.h>
-#include<windows.h>
-#include<conio.h>
-#include<string.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <windows.h>
+#include <conio.h>
+#include <string.h>
 
 //<=============STRUCTS=============>
 
@@ -63,7 +63,20 @@ int lerInteiro()
 	
 	fflush(stdin);
     return valor;
+    
+int lerFloat()
+{
+	int valor;
+	while(scanf("%f",&valor)!=1)
+	{
+		printf("** ENTRADA INVALIDA! Por favor, digite um numero: ");
+        fflush(stdin);
+	}
+	
+	fflush(stdin);
+    return valor;
 }
+
 
 void lerCPF(char cpf[]) {
     int valido, i, tamanho;
@@ -89,6 +102,36 @@ void lerCPF(char cpf[]) {
 
         if (!valido) {
             printf("** CPF INVALIDO! Digite exatamente 11 numeros: ");
+        }
+    } while (!valido);
+}
+
+void lerTextoApenasLetras(char mensagem[], char texto[], int tamanhoMax) {
+    int valido, i, tamanho;
+    do {
+        valido = 1;
+        printf("%s", mensagem);
+        fflush(stdin);
+        fgets(texto, tamanhoMax, stdin);
+        texto[strcspn(texto, "\n")] = '\0';
+
+        tamanho = strlen(texto);
+        if (tamanho == 0) {
+            valido = 0;
+        } else {
+            for (i = 0; i < tamanho; i++) {
+                if (!isalpha(texto[i]) && texto[i] != ' ' && texto[i] != 'ç' && texto[i] != 'Ç' && 
+                    texto[i] != 'á' && texto[i] != 'é' && texto[i] != 'í' && texto[i] != 'ó' && texto[i] != 'ú' &&
+                    texto[i] != 'à' && texto[i] != 'è' && texto[i] != 'ì' && texto[i] != 'ò' && texto[i] != 'ù' &&
+                    texto[i] != 'ã' && texto[i] != 'õ' && texto[i] != 'â' && texto[i] != 'ê' && texto[i] != 'ô') {
+                    valido = 0;
+                    break;
+                }
+            }
+        }
+
+        if (!valido) {
+            printf("** ENTRADA INVALIDA! Digite apenas letras: ");
         }
     } while (!valido);
 }
@@ -267,10 +310,7 @@ char cadastrarAluno() {
         else {
             strcpy(Al.cpf, temp_cpf);
 
-            printf("Insira o nome completo: ");
-            fflush(stdin);
-            fgets(Al.nome, sizeof(Al.nome), stdin);
-            Al.nome[strcspn(Al.nome, "\n")] = '\0';
+            lerTextoApenasLetras("Insira o nome completo: ", Al.nome, sizeof(Al.nome));
 
             printf("Insira o telefone: ");
             fflush(stdin);
@@ -320,15 +360,9 @@ char cadastrarInstrutor() {
         else {
             strcpy(Inst.cpf, temp_cpf);
 
-            printf("Insira o nome completo: ");
-            fflush(stdin);
-            fgets(Inst.nome, sizeof(Inst.nome), stdin);
-            Inst.nome[strcspn(Inst.nome, "\n")] = '\0';
+            lerTextoApenasLetras("Insira o nome completo: ", Inst.nome, sizeof(Inst.nome));
 
-            printf("Insira a especialidade: ");
-            fflush(stdin);
-            fgets(Inst.especialidade, sizeof(Inst.especialidade), stdin);
-            Inst.especialidade[strcspn(Inst.especialidade, "\n")] = '\0';
+            lerTextoApenasLetras("Insira a especialidade: ", Inst.especialidade, sizeof(Inst.especialidade));
 
             fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
 
@@ -345,19 +379,161 @@ char cadastrarInstrutor() {
     }
 }
 
+//<=====SELEÇÃO / BUSCA INTERATIVA=====>
+int selecionarAluno() {
+    FILE *arqAluno;
+    Aluno Al;
+    int opSub, i, idx = -1, qtde = 0;
+
+    arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno == NULL) {
+        printf("\n** Nenhum aluno cadastrado! **\n");
+        system("pause");
+        return -1;
+    }
+
+    fseek(arqAluno, 0, 2);
+    qtde = ftell(arqAluno) / sizeof(Aluno);
+    fclose(arqAluno);
+
+    if (qtde == 0) {
+        printf("\n** Nenhum aluno cadastrado! **\n");
+        system("pause");
+        return -1;
+    }
+
+    while (1) {
+        system("cls");
+        printf("\n--- SELECIONAR ALUNO ---");
+        printf("\n1. Digitar CPF diretamente");
+        printf("\n2. Listar todos os alunos (escolher por numero)");
+        printf("\n0. Cancelar");
+        printf("\nOpcao: ");
+        opSub = lerInteiro();
+
+        if (opSub == 0) {
+            return -1;
+        } else if (opSub == 1) {
+            char cpf[20];
+            printf("CPF do Aluno (apenas numeros): ");
+            lerCPF(cpf);
+            idx = buscaAluno(cpf);
+            if (idx == -1) {
+                printf("\n** Aluno nao encontrado! **\n");
+                system("pause");
+            } else {
+                return idx;
+            }
+        } else if (opSub == 2) {
+            arqAluno = fopen("aluno.bin", "rb");
+            if (arqAluno != NULL) {
+                printf("\n<=== LISTA DE ALUNOS ===>\n");
+                for (i = 0; i < qtde; i++) {
+                    fread(&Al, sizeof(Aluno), 1, arqAluno);
+                    printf("[%d] Nome: %s | CPF: %s | Status: %s\n",
+                           i, Al.nome, Al.cpf,
+                           Al.status_matricula ? "Ativa" : "Inativa");
+                }
+                fclose(arqAluno);
+                printf("-------------------------\n");
+                printf("Digite o NUMERO entre colchetes (-1 para cancelar): ");
+                idx = lerInteiro();
+                if (idx == -1) {
+                    return -1;
+                } else if (idx >= 0 && idx < qtde) {
+                    return idx;
+                } else {
+                    printf("\n** Indice invalido! **\n");
+                    system("pause");
+                }
+            }
+        } else {
+            printf("\n** Opcao invalida! **\n");
+            system("pause");
+        }
+    }
+}
+
+int selecionarInstrutor() {
+    FILE *arqInstrutor;
+    Instrutor Inst;
+    int opSub, i, idx = -1, qtde = 0;
+
+    arqInstrutor = fopen("instrutor.bin", "rb");
+    if (arqInstrutor == NULL) {
+        printf("\n** Nenhum instrutor cadastrado! **\n");
+        system("pause");
+        return -1;
+    }
+
+    fseek(arqInstrutor, 0, 2);
+    qtde = ftell(arqInstrutor) / sizeof(Instrutor);
+    fclose(arqInstrutor);
+
+    if (qtde == 0) {
+        printf("\n** Nenhum instrutor cadastrado! **\n");
+        system("pause");
+        return -1;
+    }
+
+    while (1) {
+        system("cls");
+        printf("\n--- SELECIONAR INSTRUTOR ---");
+        printf("\n1. Digitar CPF diretamente");
+        printf("\n2. Listar todos os instrutores (escolher por numero)");
+        printf("\n0. Cancelar");
+        printf("\nOpcao: ");
+        opSub = lerInteiro();
+
+        if (opSub == 0) {
+            return -1;
+        } else if (opSub == 1) {
+            char cpf[20];
+            printf("CPF do Instrutor (apenas numeros): ");
+            lerCPF(cpf);
+            idx = buscaInstrutor(cpf);
+            if (idx == -1) {
+                printf("\n** Instrutor nao encontrado! **\n");
+                system("pause");
+            } else {
+                return idx;
+            }
+        } else if (opSub == 2) {
+            arqInstrutor = fopen("instrutor.bin", "rb");
+            if (arqInstrutor != NULL) {
+                printf("\n<=== LISTA DE INSTRUTORES ===>\n");
+                for (i = 0; i < qtde; i++) {
+                    fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+                    printf("[%d] Nome: %s | CPF: %s | Especialidade: %s\n",
+                           i, Inst.nome, Inst.cpf, Inst.especialidade);
+                }
+                fclose(arqInstrutor);
+                printf("-----------------------------\n");
+                printf("Digite o NUMERO entre colchetes (-1 para cancelar): ");
+                idx = lerInteiro();
+                if (idx == -1) {
+                    return -1;
+                } else if (idx >= 0 && idx < qtde) {
+                    return idx;
+                } else {
+                    printf("\n** Indice invalido! **\n");
+                    system("pause");
+                }
+            }
+        } else {
+            printf("\n** Opcao invalida! **\n");
+            system("pause");
+        }
+    }
+}
+
 //<=====CONSULTAS=====>
-char consultarAluno() 
+void consultarAluno() 
 {
-    char temp_cpf[20];
     Aluno Al;
     FILE *arqAluno;
 
-    system("cls");
-    printf("\n--- CONSULTAR ALUNO ---");
-    printf("\nInsira o CPF: ");
-    lerCPF(temp_cpf);
-
-    int pos = buscaAluno(temp_cpf);
+    int pos = selecionarAluno();
     if (pos != -1) {
         arqAluno = fopen("aluno.bin", "rb");
         if (arqAluno != NULL) {
@@ -365,6 +541,7 @@ char consultarAluno()
             fread(&Al, sizeof(Aluno), 1, arqAluno);
             fclose(arqAluno);
 
+            system("cls");
             printf("\n** Aluno encontrado! **\n");
             printf("Nome: %s\n", Al.nome);
             printf("CPF: %s\n", Al.cpf);
@@ -372,27 +549,17 @@ char consultarAluno()
             printf("ID Pacote: %d\n", Al.id_pacote);
             printf("ID Plano: %d\n", Al.id_plano);
             printf("Status Matricula: %d\n", Al.status_matricula);
+            system("pause");
         }
-    } else {
-        printf("\n** ERRO: Aluno nao encontrado! **\n");
     }
-
-    printf("\nDeseja consultar outro aluno? (S/N): ");
-    return lerOpcaoSN();
 }
 
-char consultarInstrutor() 
+void consultarInstrutor() 
 {
-    char temp_cpf[20];
     Instrutor Inst;
     FILE *arqInstrutor;
 
-    system("cls");
-    printf("\n--- CONSULTAR INSTRUTOR ---");
-    printf("\nInsira o CPF: ");
-    lerCPF(temp_cpf);
-
-    int pos = buscaInstrutor(temp_cpf);
+    int pos = selecionarInstrutor();
     if (pos != -1) {
         arqInstrutor = fopen("instrutor.bin", "rb");
         if (arqInstrutor != NULL) {
@@ -400,17 +567,14 @@ char consultarInstrutor()
             fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
             fclose(arqInstrutor);
 
+            system("cls");
             printf("\n** Instrutor encontrado! **\n");
             printf("Nome: %s\n", Inst.nome);
             printf("CPF: %s\n", Inst.cpf);
             printf("Especialidade: %s\n", Inst.especialidade);
+            system("pause");
         }
-    } else {
-        printf("\n** ERRO: Instrutor nao encontrado! **\n");
     }
-
-    printf("\nDeseja consultar outro instrutor? (S/N): ");
-    return lerOpcaoSN();
 }
 
 void consultarPessoas() 
@@ -427,8 +591,131 @@ void consultarPessoas()
         op = lerInteiro();
 
         switch (op) {
-            case 1: while (consultarAluno() == 'S'); break;
-            case 2: while (consultarInstrutor() == 'S'); break;
+            case 1: consultarAluno(); break;
+            case 2: consultarInstrutor(); break;
+            case 0: break;
+            default: printf("\nOpcao invalida!\n"); system("pause");
+        }
+    } while (op != 0);
+}
+
+//<=====EXCLUSÕES=====>
+void excluirAlunoReal() {
+    FILE *arquivo, *temp;
+    Aluno Al;
+    int pos;
+
+    pos = selecionarAluno();
+    if (pos == -1) {
+        return;
+    }
+
+    arquivo = fopen("aluno.bin", "rb");
+    fseek(arquivo, pos * sizeof(Aluno), 0);
+    fread(&Al, sizeof(Aluno), 1, arquivo);
+    fclose(arquivo);
+
+    system("cls");
+    printf("\n--- EXCLUIR ALUNO ---");
+    printf("\nNome: %s", Al.nome);
+    printf("\nCPF: %s", Al.cpf);
+    printf("\nTelefone: %s", Al.telefone);
+    printf("\n-------------------");
+    printf("\nDeseja realmente excluir? (S/N): ");
+    
+    if (lerOpcaoSN() == 'S') {
+        char cpfExcluir[15];
+        strcpy(cpfExcluir, Al.cpf);
+
+        arquivo = fopen("aluno.bin", "rb");
+        temp = fopen("auxiliar.bin", "wb");
+        
+        if (arquivo != NULL && temp != NULL) {
+            while (fread(&Al, sizeof(Aluno), 1, arquivo) == 1) {
+                if (strcmp(Al.cpf, cpfExcluir) != 0) {
+                    fwrite(&Al, sizeof(Aluno), 1, temp);
+                }
+            }
+            fclose(temp);
+            fclose(arquivo);
+            remove("aluno.bin");
+            rename("auxiliar.bin", "aluno.bin");
+            printf("\n** O aluno foi excluido com sucesso! **\n");
+        } else {
+            if (arquivo) fclose(arquivo);
+            if (temp) fclose(temp);
+            printf("\n** Erro ao manipular os arquivos! **\n");
+        }
+    }
+    system("pause");
+}
+
+void excluirInstrutor() {
+    FILE *arquivo, *temp;
+    Instrutor Inst;
+    int pos;
+
+    pos = selecionarInstrutor();
+    if (pos == -1) {
+        return;
+    }
+
+    arquivo = fopen("instrutor.bin", "rb");
+    fseek(arquivo, pos * sizeof(Instrutor), 0);
+    fread(&Inst, sizeof(Instrutor), 1, arquivo);
+    fclose(arquivo);
+
+    system("cls");
+    printf("\n--- EXCLUIR INSTRUTOR ---");
+    printf("\nNome: %s", Inst.nome);
+    printf("\nCPF: %s", Inst.cpf);
+    printf("\nEspecialidade: %s", Inst.especialidade);
+    printf("\n-------------------");
+    printf("\nDeseja realmente excluir? (S/N): ");
+    
+    if (lerOpcaoSN() == 'S') {
+        char cpfExcluir[15];
+        strcpy(cpfExcluir, Inst.cpf);
+
+        arquivo = fopen("instrutor.bin", "rb");
+        temp = fopen("auxiliar.bin", "wb");
+        
+        if (arquivo != NULL && temp != NULL) {
+            while (fread(&Inst, sizeof(Instrutor), 1, arquivo) == 1) {
+                if (strcmp(Inst.cpf, cpfExcluir) != 0) {
+                    fwrite(&Inst, sizeof(Instrutor), 1, temp);
+                }
+            }
+            fclose(temp);
+            fclose(arquivo);
+            remove("instrutor.bin");
+            rename("auxiliar.bin", "instrutor.bin");
+            printf("\n** O instrutor foi excluido com sucesso! **\n");
+        } else {
+            if (arquivo) fclose(arquivo);
+            if (temp) fclose(temp);
+            printf("\n** Erro ao manipular os arquivos! **\n");
+        }
+    }
+    system("pause");
+}
+
+void excluirPessoa() 
+{
+    int op;
+    do 
+	{
+        system("cls");
+        printf("\n--- EXCLUIR PESSOA ---");
+        printf("\n1. Aluno");
+        printf("\n2. Instrutor");
+        printf("\n0. Voltar");
+        printf("\nOpcao: ");
+        op = lerInteiro();
+
+        switch (op) {
+            case 1: excluirAlunoReal(); break;
+            case 2: excluirInstrutor(); break;
             case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
@@ -463,10 +750,11 @@ void gerenciarPessoas(Aluno Al, Instrutor Inst, Atividade Atv, Recebimento Rec)
             case 3: 
                 consultarPessoas(); 
                 break;
-            /*
-            case 4: excluirPessoa(Al, TLA, Inst, TLINST, Atv, TLAT, Rec, TLREC); break;
-            case 0: break;
-            */
+            case 4: 
+                excluirPessoa(); 
+                break;
+            case 0: 
+                break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (op != 0);
@@ -511,10 +799,11 @@ int main()
             case 5:
                 gerenciarMovimentacoes(Al, TLA, Pl, TLPL, Pc, TLPC, Rec, &TLREC, &prxid_rec);
                 break;
+                */
             case 0:
                 printf("\nEncerrando o sistema...\n");
                 break;
-                */
+                
             default:
                 printf("\nOpcao invalida!\n");
                 system("pause");
