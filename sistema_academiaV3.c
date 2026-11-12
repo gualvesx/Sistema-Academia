@@ -151,8 +151,7 @@ char lerOpcaoSN() {
 //<=====BUSCAS=====>
 int buscaAluno(char cpf[]) {
     Aluno Al;
-    FILE *arqAluno;
-    arqAluno = fopen("aluno.bin", "rb");
+    FILE *arqAluno = fopen("aluno.bin", "rb");
     
     if (arqAluno == NULL) return -1; 
 
@@ -173,8 +172,7 @@ int buscaAluno(char cpf[]) {
 
 int buscaInstrutor(char cpf[]) {
     Instrutor Inst;
-    FILE *arqInstrutor;
-    arqInstrutor = fopen("instrutor.bin", "rb");
+    FILE *arqInstrutor = fopen("instrutor.bin", "rb");
     
     if (arqInstrutor == NULL) return -1;
 
@@ -195,8 +193,7 @@ int buscaInstrutor(char cpf[]) {
 
 int buscaAtividade(int id) {
     Atividade Atv;
-    FILE *arqAtividade;
-    arqAtividade = fopen("atividade.bin", "rb");
+    FILE *arqAtividade = fopen("atividade.bin", "rb");
     
     if (arqAtividade == NULL) return -1;
 
@@ -217,8 +214,7 @@ int buscaAtividade(int id) {
 
 int buscaPacote(int id) {
     Pacote Pc;
-    FILE *arqPacote;
-    arqPacote = fopen("pacote.bin", "rb");
+    FILE *arqPacote = fopen("pacote.bin", "rb");
     
     if (arqPacote == NULL) return -1;
 
@@ -239,8 +235,7 @@ int buscaPacote(int id) {
 
 int buscaPlano(int id) {
     Plano Pl;
-    FILE *arqPlano;
-    arqPlano = fopen("plano.bin", "rb");
+    FILE *arqPlano = fopen("plano.bin", "rb");
     
     if (arqPlano == NULL) return -1;
 
@@ -262,10 +257,9 @@ int buscaPlano(int id) {
 //<=====ORDENAÇÃO=====>
 void ordenarAluno()
 {
-	FILE *arqAluno;
+	FILE *arqAluno = fopen("aluno.bin", "rb+");
 	Aluno Al, Ali;
 	int qtde=0, i;
-	arqAluno = fopen("aluno.bin", "rb+");
 	if(arqAluno == NULL) return;
 	
 	fseek(arqAluno, 0, 2);
@@ -293,10 +287,9 @@ void ordenarAluno()
 
 void ordenarInstrutor()
 {
-	FILE *arqInstrutor;
+	FILE *arqInstrutor = fopen("instrutor.bin", "rb+");
 	Instrutor Inst, Insti;
 	int qtde=0, i;
-	arqInstrutor = fopen("instrutor.bin", "rb+");
 	if(arqInstrutor == NULL) return;
 	
 	fseek(arqInstrutor, 0, 2);
@@ -324,10 +317,9 @@ void ordenarInstrutor()
 
 void ordenarAtividade()
 {
-	FILE *arqAtividade;
+	FILE *arqAtividade = fopen("atividade.bin", "rb+");
 	Atividade Atv, Atvi;
 	int qtde=0, i;
-	arqAtividade = fopen("atividade.bin", "rb+");
 	if(arqAtividade == NULL) return;
 	
 	fseek(arqAtividade, 0, 2);
@@ -355,10 +347,9 @@ void ordenarAtividade()
 
 void ordenarPacote()
 {
-	FILE *arqPacote;
+	FILE *arqPacote = fopen("pacote.bin", "rb+");
 	Pacote Pc, Pci;
 	int qtde=0, i;
-	arqPacote = fopen("pacote.bin", "rb+");
 	if(arqPacote == NULL) return;
 	
 	fseek(arqPacote, 0, 2);
@@ -386,10 +377,9 @@ void ordenarPacote()
 
 void ordenarPlano()
 {
-	FILE *arqPlano;
+	FILE *arqPlano = fopen("plano.bin", "rb+");
 	Plano Pl, Pli;
 	int qtde=0, i;
-	arqPlano = fopen("plano.bin", "rb+");
 	if(arqPlano == NULL) return;
 	
 	fseek(arqPlano, 0, 2);
@@ -434,11 +424,10 @@ int menuPrincipal()
 
 //<=====SELEÇÃO / BUSCA INTERATIVA=====>
 int selecionarAluno() {
-    FILE *arqAluno;
+    FILE *arqAluno = fopen("aluno.bin", "rb");
     Aluno Al;
     int opSub, i, idx = -1, qtde = 0;
 
-    arqAluno = fopen("aluno.bin", "rb");
     if (arqAluno == NULL) {
         printf("\n** Nenhum aluno cadastrado! **\n");
         system("pause");
@@ -508,11 +497,10 @@ int selecionarAluno() {
 }
 
 int selecionarInstrutor() {
-    FILE *arqInstrutor;
+    FILE *arqInstrutor = fopen("instrutor.bin", "rb");
     Instrutor Inst;
     int opSub, i, idx = -1, qtde = 0;
 
-    arqInstrutor = fopen("instrutor.bin", "rb");
     if (arqInstrutor == NULL) {
         printf("\n** Nenhum instrutor cadastrado! **\n");
         system("pause");
@@ -581,11 +569,10 @@ int selecionarInstrutor() {
 }
 
 int selecionarAtividade() {
-    FILE *arqAtividade;
+    FILE *arqAtividade = fopen("atividade.bin", "rb");
     Atividade Atv;
     int opSub, i, idx = -1, qtde = 0, id;
 
-    arqAtividade = fopen("atividade.bin", "rb");
     if (arqAtividade == NULL) {
         printf("\n** Nenhuma atividade cadastrada! **\n");
         system("pause");
@@ -653,11 +640,10 @@ int selecionarAtividade() {
 }
 
 int selecionarPacote() {
-    FILE *arqPacote;
+    FILE *arqPacote = fopen("pacote.bin", "rb");
     Pacote Pc;
     int opSub, i, j, idx = -1, qtde = 0, id;
 
-    arqPacote = fopen("pacote.bin", "rb");
     if (arqPacote == NULL) {
         printf("\n** Nenhum pacote cadastrado! **\n");
         system("pause");
@@ -729,11 +715,10 @@ int selecionarPacote() {
 }
 
 int selecionarPlano() {
-    FILE *arqPlano;
+    FILE *arqPlano = fopen("plano.bin", "rb");
     Plano Pl;
     int opSub, i, idx = -1, qtde = 0, id;
 
-    arqPlano = fopen("plano.bin", "rb");
     if (arqPlano == NULL) {
         printf("\n** Nenhum plano cadastrado! **\n");
         system("pause");
@@ -803,9 +788,7 @@ int selecionarPlano() {
 //<=====CADASTROS=====>
 char cadastrarAluno() {
     Aluno Al;
-    FILE *arqAluno;
-    arqAluno = fopen("aluno.bin", "ab");
-    
+    FILE *arqAluno = fopen("aluno.bin", "ab");
     char temp_cpf[20];
     int idx;
 
@@ -836,6 +819,7 @@ char cadastrarAluno() {
         }
 
         fclose(arqAluno); 
+        ordenarAluno();
 
         printf("\nDeseja cadastrar outro aluno? (S/N): ");
         return lerOpcaoSN();
@@ -847,9 +831,7 @@ char cadastrarAluno() {
 
 char cadastrarInstrutor() {
     Instrutor Inst;
-    FILE *arqInstrutor;
-    arqInstrutor = fopen("instrutor.bin", "ab"); 
-    
+    FILE *arqInstrutor = fopen("instrutor.bin", "ab"); 
     char temp_cpf[20];
     int idx;
 
@@ -873,6 +855,7 @@ char cadastrarInstrutor() {
         }
 
         fclose(arqInstrutor); 
+        ordenarInstrutor();
 
         printf("\nDeseja cadastrar outro instrutor? (S/N): ");
         return lerOpcaoSN();
@@ -884,10 +867,9 @@ char cadastrarInstrutor() {
 
 char cadastrarAtividade() {
     Atividade Atv;
-    FILE *arqAtividade;
+    FILE *arqAtividade = fopen("atividade.bin", "rb");
     int proximo_id = 1, idxInst;
 
-    arqAtividade = fopen("atividade.bin", "rb");
     if (arqAtividade != NULL) {
         fseek(arqAtividade, 0, 2);
         proximo_id = (ftell(arqAtividade) / sizeof(Atividade)) + 1;
@@ -919,6 +901,7 @@ char cadastrarAtividade() {
 
         fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
         fclose(arqAtividade);
+        ordenarAtividade();
         printf("\n** Atividade cadastrada com sucesso! **\n");
 
         printf("Deseja cadastrar outra atividade? (S/N): ");
@@ -931,11 +914,10 @@ char cadastrarAtividade() {
 
 char cadastrarPacote() {
     Pacote Pc;
-    FILE *arqPacote;
+    FILE *arqPacote = fopen("pacote.bin", "rb");
     int proximo_id = 1, idxAtiv, jaExiste, k;
     char continuar = 'S';
 
-    arqPacote = fopen("pacote.bin", "rb");
     if (arqPacote != NULL) {
         fseek(arqPacote, 0, 2);
         proximo_id = (ftell(arqPacote) / sizeof(Pacote)) + 1;
@@ -985,6 +967,7 @@ char cadastrarPacote() {
 
         fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
         fclose(arqPacote);
+        ordenarPacote();
         printf("\n** Pacote cadastrado com sucesso! **\n");
 
         printf("\nDeseja cadastrar outro pacote? (S/N): ");
@@ -997,11 +980,10 @@ char cadastrarPacote() {
 
 char cadastrarPlano() {
     Plano Pl;
-    FILE *arqPlano;
+    FILE *arqPlano = fopen("plano.bin", "rb");
     int proximo_id = 1;
     char tipo;
 
-    arqPlano = fopen("plano.bin", "rb");
     if (arqPlano != NULL) {
         fseek(arqPlano, 0, 2);
         proximo_id = (ftell(arqPlano) / sizeof(Plano)) + 1;
@@ -1035,6 +1017,7 @@ char cadastrarPlano() {
 
         fwrite(&Pl, sizeof(Plano), 1, arqPlano);
         fclose(arqPlano);
+        ordenarPlano();
         printf("\n** Plano cadastrado com sucesso! **\n");
 
         printf("\nDeseja cadastrar outro plano? (S/N): ");
@@ -1049,11 +1032,9 @@ char cadastrarPlano() {
 void consultarAluno() 
 {
     Aluno Al;
-    FILE *arqAluno;
-
     int pos = selecionarAluno();
     if (pos != -1) {
-        arqAluno = fopen("aluno.bin", "rb");
+        FILE *arqAluno = fopen("aluno.bin", "rb");
         if (arqAluno != NULL) {
             fseek(arqAluno, pos * sizeof(Aluno), 0);
             fread(&Al, sizeof(Aluno), 1, arqAluno);
@@ -1075,11 +1056,9 @@ void consultarAluno()
 void consultarInstrutor() 
 {
     Instrutor Inst;
-    FILE *arqInstrutor;
-
     int pos = selecionarInstrutor();
     if (pos != -1) {
-        arqInstrutor = fopen("instrutor.bin", "rb");
+        FILE *arqInstrutor = fopen("instrutor.bin", "rb");
         if (arqInstrutor != NULL) {
             fseek(arqInstrutor, pos * sizeof(Instrutor), 0);
             fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
@@ -1098,11 +1077,9 @@ void consultarInstrutor()
 void consultarAtividade() 
 {
     Atividade Atv;
-    FILE *arqAtividade;
-
     int pos = selecionarAtividade();
     if (pos != -1) {
-        arqAtividade = fopen("atividade.bin", "rb");
+        FILE *arqAtividade = fopen("atividade.bin", "rb");
         if (arqAtividade != NULL) {
             fseek(arqAtividade, pos * sizeof(Atividade), 0);
             fread(&Atv, sizeof(Atividade), 1, arqAtividade);
@@ -1121,11 +1098,9 @@ void consultarAtividade()
 void consultarPacote() 
 {
     Pacote Pc;
-    FILE *arqPacote;
-
     int pos = selecionarPacote();
     if (pos != -1) {
-        arqPacote = fopen("pacote.bin", "rb");
+        FILE *arqPacote = fopen("pacote.bin", "rb");
         if (arqPacote != NULL) {
             fseek(arqPacote, pos * sizeof(Pacote), 0);
             fread(&Pc, sizeof(Pacote), 1, arqPacote);
@@ -1148,11 +1123,9 @@ void consultarPacote()
 void consultarPlano() 
 {
     Plano Pl;
-    FILE *arqPlano;
-
     int pos = selecionarPlano();
     if (pos != -1) {
-        arqPlano = fopen("plano.bin", "rb");
+        FILE *arqPlano = fopen("plano.bin", "rb");
         if (arqPlano != NULL) {
             fseek(arqPlano, pos * sizeof(Plano), 0);
             fread(&Pl, sizeof(Plano), 1, arqPlano);
@@ -1191,8 +1164,246 @@ void consultarPessoas()
     } while (op != 0);
 }
 
+//<=====ALTERAÇÕES=====>
+void alterarAluno() {
+    int pos = selecionarAluno();
+    if (pos == -1) return;
+
+    FILE *arqAluno = fopen("aluno.bin", "rb+");
+    if (arqAluno == NULL) {
+        printf("\n** Erro ao abrir arquivo de alunos! **\n");
+        system("pause");
+        return;
+    }
+
+    Aluno Al;
+    fseek(arqAluno, pos * sizeof(Aluno), SEEK_SET);
+    fread(&Al, sizeof(Aluno), 1, arqAluno);
+
+    system("cls");
+    printf("\n--- ALTERAR DADOS DO ALUNO ---");
+    printf("\nNome atual: %s", Al.nome);
+    lerTextoApenasLetras("\nNovo nome completo: ", Al.nome, sizeof(Al.nome));
+
+    printf("Novo telefone: ");
+    fflush(stdin);
+    scanf("%19s", Al.telefone);
+
+    fseek(arqAluno, pos * sizeof(Aluno), SEEK_SET);
+    fwrite(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
+
+    ordenarAluno();
+    printf("\n** Aluno alterado com sucesso! **\n");
+    system("pause");
+}
+
+void alterarInstrutor() {
+    int pos = selecionarInstrutor();
+    if (pos == -1) return;
+
+    FILE *arqInstrutor = fopen("instrutor.bin", "rb+");
+    if (arqInstrutor == NULL) {
+        printf("\n** Erro ao abrir arquivo de instrutores! **\n");
+        system("pause");
+        return;
+    }
+
+    Instrutor Inst;
+    fseek(arqInstrutor, pos * sizeof(Instrutor), SEEK_SET);
+    fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+
+    system("cls");
+    printf("\n--- ALTERAR DADOS DO INSTRUTOR ---");
+    printf("\nNome atual: %s", Inst.nome);
+    lerTextoApenasLetras("\nNovo nome completo: ", Inst.nome, sizeof(Inst.nome));
+    lerTextoApenasLetras("Nova especialidade: ", Inst.especialidade, sizeof(Inst.especialidade));
+
+    fseek(arqInstrutor, pos * sizeof(Instrutor), SEEK_SET);
+    fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+    fclose(arqInstrutor);
+
+    ordenarInstrutor();
+    printf("\n** Instrutor alterado com sucesso! **\n");
+    system("pause");
+}
+
+void alterarAtividade() {
+    int pos = selecionarAtividade();
+    if (pos == -1) return;
+
+    FILE *arqAtividade = fopen("atividade.bin", "rb+");
+    if (arqAtividade == NULL) {
+        printf("\n** Erro ao abrir arquivo de atividades! **\n");
+        system("pause");
+        return;
+    }
+
+    Atividade Atv;
+    fseek(arqAtividade, pos * sizeof(Atividade), SEEK_SET);
+    fread(&Atv, sizeof(Atividade), 1, arqAtividade);
+
+    system("cls");
+    printf("\n--- ALTERAR DADOS DA ATIVIDADE ---");
+    printf("\nNome atual: %s", Atv.nome);
+    lerTextoApenasLetras("\nNovo nome da Atividade: ", Atv.nome, sizeof(Atv.nome));
+
+    int idxInst = selecionarInstrutor();
+    if (idxInst != -1) {
+        FILE *arqInst = fopen("instrutor.bin", "rb");
+        Instrutor tempInst;
+        fseek(arqInst, idxInst * sizeof(Instrutor), SEEK_SET);
+        fread(&tempInst, sizeof(Instrutor), 1, arqInst);
+        fclose(arqInst);
+        strcpy(Atv.cpf_instrutor, tempInst.cpf);
+    }
+
+    fseek(arqAtividade, pos * sizeof(Atividade), SEEK_SET);
+    fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
+    fclose(arqAtividade);
+
+    ordenarAtividade();
+    printf("\n** Atividade alterada com sucesso! **\n");
+    system("pause");
+}
+
+void alterarPacote() {
+    int pos = selecionarPacote();
+    if (pos == -1) return;
+
+    FILE *arqPacote = fopen("pacote.bin", "rb+");
+    if (arqPacote == NULL) {
+        printf("\n** Erro ao abrir arquivo de pacotes! **\n");
+        system("pause");
+        return;
+    }
+
+    Pacote Pc;
+    fseek(arqPacote, pos * sizeof(Pacote), SEEK_SET);
+    fread(&Pc, sizeof(Pacote), 1, arqPacote);
+
+    system("cls");
+    printf("\n--- ALTERAR DADOS DO PACOTE ---");
+    printf("\nNome atual: %s", Pc.nome);
+    lerTextoApenasLetras("\nNovo nome do Pacote: ", Pc.nome, sizeof(Pc.nome));
+
+    printf("\nDeseja reconfigurar as atividades deste pacote? (S/N): ");
+    if (lerOpcaoSN() == 'S') {
+        Pc.qtd_atividades = 0;
+        char continuar = 'S';
+        int idxAtiv, jaExiste, k;
+
+        while (continuar == 'S' && Pc.qtd_atividades < 10) {
+            idxAtiv = selecionarAtividade();
+            if (idxAtiv == -1) break;
+
+            Atividade Atv;
+            FILE *fAtv = fopen("atividade.bin", "rb");
+            fseek(fAtv, idxAtiv * sizeof(Atividade), SEEK_SET);
+            fread(&Atv, sizeof(Atividade), 1, fAtv);
+            fclose(fAtv);
+
+            jaExiste = 0;
+            for (k = 0; k < Pc.qtd_atividades; k++) {
+                if (Pc.ids_atividades[k] == Atv.id) jaExiste = 1;
+            }
+            if (jaExiste) {
+                printf("** AVISO: Atividade ja esta neste pacote! **\n");
+                system("pause");
+            } else {
+                Pc.ids_atividades[Pc.qtd_atividades] = Atv.id;
+                Pc.qtd_atividades++;
+                printf("** Atividade associada ao pacote! **\n");
+                system("pause");
+            }
+
+            if (Pc.qtd_atividades < 10) {
+                printf("Deseja incluir mais uma atividade? (S/N): ");
+                continuar = lerOpcaoSN();
+            }
+        }
+    }
+
+    fseek(arqPacote, pos * sizeof(Pacote), SEEK_SET);
+    fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
+    fclose(arqPacote);
+
+    ordenarPacote();
+    printf("\n** Pacote alterado com sucesso! **\n");
+    system("pause");
+}
+
+void alterarPlano() {
+    int pos = selecionarPlano();
+    if (pos == -1) return;
+
+    FILE *arqPlano = fopen("plano.bin", "rb+");
+    if (arqPlano == NULL) {
+        printf("\n** Erro ao abrir arquivo de planos! **\n");
+        system("pause");
+        return;
+    }
+
+    Plano Pl;
+    fseek(arqPlano, pos * sizeof(Plano), SEEK_SET);
+    fread(&Pl, sizeof(Plano), 1, arqPlano);
+
+    system("cls");
+    printf("\n--- ALTERAR DADOS DO PLANO ---");
+    printf("\nNome atual: %s", Pl.nome);
+    lerTextoApenasLetras("\nNovo nome do Plano: ", Pl.nome, sizeof(Pl.nome));
+
+    char tipo;
+    do {
+        printf("Novo tipo [M-Mensal, T-Trimestral, S-Semestral, A-Anual]: ");
+        fflush(stdin);
+        scanf("%c", &tipo);
+        Pl.tipo = toupper(tipo);
+        if (Pl.tipo != 'M' && Pl.tipo != 'T' && Pl.tipo != 'S' && Pl.tipo != 'A') {
+            printf("** TIPO INVALIDO! Tente novamente. **\n");
+        }
+    } while (Pl.tipo != 'M' && Pl.tipo != 'T' && Pl.tipo != 'S' && Pl.tipo != 'A');
+
+    printf("Novo valor base (R$): ");
+    Pl.valor_base = lerFloat();
+    while (Pl.valor_base <= 0) {
+        printf("** VALOR INVALIDO! Digite um valor positivo: ");
+        Pl.valor_base = lerFloat();
+    }
+
+    fseek(arqPlano, pos * sizeof(Plano), SEEK_SET);
+    fwrite(&Pl, sizeof(Plano), 1, arqPlano);
+    fclose(arqPlano);
+
+    ordenarPlano();
+    printf("\n** Plano alterado com sucesso! **\n");
+    system("pause");
+}
+
+void alterarPessoa() 
+{
+    int op;
+    do 
+	{
+        system("cls");
+        printf("\n--- ALTERAR PESSOA ---");
+        printf("\n1. Aluno");
+        printf("\n2. Instrutor");
+        printf("\n0. Voltar");
+        printf("\nOpcao: ");
+        op = lerInteiro();
+
+        switch (op) {
+            case 1: alterarAluno(); break;
+            case 2: alterarInstrutor(); break;
+            case 0: break;
+            default: printf("\nOpcao invalida!\n"); system("pause");
+        }
+    } while (op != 0);
+}
+
 //<=====EXCLUSÕES COM VERIFICAÇÃO COMPLETA DE DEPENDÊNCIAS=====>
-void excluirAlunoReal() {
+void excluirAluno() {
     FILE *arqAluno, *arqTemp;
     Aluno Al;
     int pos, temMatriculaAtiva = 0, temBoletos = 0;
@@ -1261,6 +1472,7 @@ void excluirAlunoReal() {
             fclose(arqAluno);
             remove("aluno.bin");
             rename("auxiliar.bin", "aluno.bin");
+            ordenarAluno();
             printf("\n** O aluno foi excluido com sucesso! **\n");
         } else {
             if (arqAluno) fclose(arqAluno);
@@ -1331,6 +1543,7 @@ void excluirInstrutor() {
             fclose(arqInstrutor);
             remove("instrutor.bin");
             rename("auxiliar.bin", "instrutor.bin");
+            ordenarInstrutor();
             printf("\n** O instrutor foi excluido com sucesso! **\n");
         } else {
             if (arqInstrutor) fclose(arqInstrutor);
@@ -1401,6 +1614,7 @@ void excluirAtividade() {
             fclose(arqAtividade);
             remove("atividade.bin");
             rename("auxiliar.bin", "atividade.bin");
+            ordenarAtividade();
             printf("\n** A atividade foi excluida com sucesso! **\n");
         }
     }
@@ -1464,6 +1678,7 @@ void excluirPacote() {
             fclose(arqPacote);
             remove("pacote.bin");
             rename("auxiliar.bin", "pacote.bin");
+            ordenarPacote();
             printf("\n** O pacote foi excluido com sucesso! **\n");
         }
     }
@@ -1527,6 +1742,7 @@ void excluirPlano() {
             fclose(arqPlano);
             remove("plano.bin");
             rename("auxiliar.bin", "plano.bin");
+            ordenarPlano();
             printf("\n** O plano foi excluido com sucesso! **\n");
         }
     }
@@ -1547,7 +1763,7 @@ void excluirPessoa()
         op = lerInteiro();
 
         switch (op) {
-            case 1: excluirAlunoReal(); break;
+            case 1: excluirAluno(); break;
             case 2: excluirInstrutor(); break;
             case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
@@ -1795,7 +2011,8 @@ void gerenciarPessoas()
         printf("\n1. Cadastrar Aluno");
         printf("\n2. Cadastrar Instrutor");
         printf("\n3. Consultar Pessoas");
-        printf("\n4. Excluir Pessoa");
+        printf("\n4. Alterar Pessoa");
+        printf("\n5. Excluir Pessoa");
         printf("\n0. Voltar ao Menu Principal");
         printf("\nOpcao: ");
         op = lerInteiro();
@@ -1803,16 +2020,17 @@ void gerenciarPessoas()
         switch (op) {
             case 1: 
                 while (cadastrarAluno() == 'S'); 
-                ordenarAluno(); 
                 break;
             case 2: 
                 while (cadastrarInstrutor() == 'S'); 
-                ordenarInstrutor(); 
                 break;
             case 3: 
                 consultarPessoas(); 
                 break;
             case 4: 
+                alterarPessoa(); 
+                break;
+            case 5: 
                 excluirPessoa(); 
                 break;
             case 0: 
@@ -1831,7 +2049,8 @@ void gerenciarAtividades()
         printf("\n--- GERENCIAR ATIVIDADES ---");
         printf("\n1. Cadastrar Atividade");
         printf("\n2. Consultar Atividades");
-        printf("\n3. Excluir Atividade");
+        printf("\n3. Alterar Atividade");
+        printf("\n4. Excluir Atividade");
         printf("\n0. Voltar ao Menu Principal");
         printf("\nOpcao: ");
         op = lerInteiro();
@@ -1839,12 +2058,14 @@ void gerenciarAtividades()
         switch (op) {
             case 1: 
                 while (cadastrarAtividade() == 'S'); 
-                ordenarAtividade(); 
                 break;
             case 2: 
                 consultarAtividade(); 
                 break;
             case 3: 
+                alterarAtividade(); 
+                break;
+            case 4: 
                 excluirAtividade(); 
                 break;
             case 0: 
@@ -1863,7 +2084,8 @@ void gerenciarPacotes()
         printf("\n--- GERENCIAR PACOTES ---");
         printf("\n1. Cadastrar Pacote");
         printf("\n2. Consultar Pacotes");
-        printf("\n3. Excluir Pacote");
+        printf("\n3. Alterar Pacote");
+        printf("\n4. Excluir Pacote");
         printf("\n0. Voltar ao Menu Principal");
         printf("\nOpcao: ");
         op = lerInteiro();
@@ -1871,12 +2093,14 @@ void gerenciarPacotes()
         switch (op) {
             case 1: 
                 while (cadastrarPacote() == 'S'); 
-                ordenarPacote(); 
                 break;
             case 2: 
                 consultarPacote(); 
                 break;
             case 3: 
+                alterarPacote(); 
+                break;
+            case 4: 
                 excluirPacote(); 
                 break;
             case 0: 
@@ -1895,7 +2119,8 @@ void gerenciarPlanos()
         printf("\n--- GERENCIAR PLANOS ---");
         printf("\n1. Cadastrar Plano");
         printf("\n2. Consultar Planos");
-        printf("\n3. Excluir Plano");
+        printf("\n3. Alterar Plano");
+        printf("\n4. Excluir Plano");
         printf("\n0. Voltar ao Menu Principal");
         printf("\nOpcao: ");
         op = lerInteiro();
@@ -1903,12 +2128,14 @@ void gerenciarPlanos()
         switch (op) {
             case 1: 
                 while (cadastrarPlano() == 'S'); 
-                ordenarPlano(); 
                 break;
             case 2: 
                 consultarPlano(); 
                 break;
             case 3: 
+                alterarPlano(); 
+                break;
+            case 4: 
                 excluirPlano(); 
                 break;
             case 0: 
@@ -1944,10 +2171,8 @@ void gerenciarMovimentacoes()
 
 int main()
 {
-	//<===ARQUIVOS===>
 	FILE *arqAluno, *arqInstrutor, *arqAtividade, *arqPacote, *arqPlano, *arqRecebimento;
 	
-	//<===STRUCTS===>
 	Aluno Al;
     Instrutor Inst;
     Atividade Atv;
@@ -1955,7 +2180,6 @@ int main()
     Plano Pl;
     Recebimento Rec;
     
-    //<===SISTEMA===>
     int opcaoPrincipal;
 	
 	do
