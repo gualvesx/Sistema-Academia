@@ -1402,7 +1402,7 @@ void alterarPessoa()
     } while (op != 0);
 }
 
-//<=====EXCLUSÕES COM VERIFICAÇÃO COMPLETA DE DEPENDÊNCIAS=====>
+//<=====EXCLUSÕES=====>
 void excluirAluno() {
     FILE *arqAluno, *arqTemp;
     Aluno Al;
