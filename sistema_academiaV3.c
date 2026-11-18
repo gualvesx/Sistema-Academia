@@ -4,6 +4,18 @@
 #include <conio.h>
 #include <string.h>
 
+/*
+	EQUIPE:
+
+	- GUSTAVO EMANUEL ALVES DA SILVA / RA: 10442613366
+	- PEDRO HENRIQUE GOMES DA SILVA / RA: 10442613867
+	- KAUENDERSON DE OLIVEIRA RODRIGUES / RA: 10442614800
+	- JOÃO PEDRO CRUZ ROCHA / RA: 10442613956
+	- JUAN ALEXANDRE JAQUES CARRASCO / RA: 10442614686
+	- LUIZ HENRIQUE DAINEZ ALECRIM / RA: 10442614720
+
+*/
+
 //<=============STRUCTS=============>
 
 typedef struct {
@@ -32,12 +44,13 @@ typedef struct {
     char nome[50];
     int ids_atividades[10];
     int qtd_atividades;
+    int qtd_aulas_mes;
 } Pacote;
 
 typedef struct {
     int id;
     char nome[50];
-    char tipo;
+    char tipo; 
     float valor_base;
 } Plano;
 
@@ -45,23 +58,54 @@ typedef struct {
     int id_recebimento;
     char cpf_aluno[15];
     int mes_referencia;
+    int ano_referencia;
     float valor_cobrado;
-    int status_pago;
+    int status_pago; 
 } Recebimento;
 
-//<=============FUNCOES=============>
+//<=============PROTÓTIPOS DE FUNÇÕES=============>
+int lerInteiro();
+float lerFloat();
+void lerCPF(char cpf[]);
+void lerTelefone(char telefone[]);
+void lerTextoApenasLetras(char mensagem[], char texto[], int tamanhoMax);
+char lerOpcaoSN();
 
-//<=====VALIDACOES=====>
-int lerInteiro()
-{
-	int valor;
-	while(scanf("%d",&valor)!=1)
-	{
-		printf("** ENTRADA INVALIDA! Por favor, digite um numero: ");
+int buscaAluno(char cpf[]);
+int buscaInstrutor(char cpf[]);
+int buscaAtividade(int id);
+int buscaPacote(int id);
+int buscaPlano(int id);
+
+int proximoIdAtividade();
+int proximoIdPacote();
+int proximoIdPlano();
+int proximoIdRecebimento();
+
+void ordenarAluno();
+void ordenarInstrutor();
+void ordenarAtividade();
+void ordenarPacote();
+void ordenarPlano();
+
+int selecionarAluno();
+int selecionarInstrutor();
+int selecionarAtividade();
+int selecionarPacote();
+int selecionarPlano();
+
+void gerarProximoBoleto(char cpf[], int mes, int ano, float valor);
+int existeBoleto(char cpf[], int mes, int ano);
+void historicoPagamentosAluno();
+
+//<=============VALIDAÇÃO E LEITURA=============>
+int lerInteiro() {
+    int valor;
+    while (scanf("%d", &valor) != 1) {
+        printf("** ENTRADA INVALIDA! Por favor, digite um numero: ");
         fflush(stdin);
-	}
-	
-	fflush(stdin);
+    }
+    fflush(stdin);
     return valor;
 }
 
@@ -81,7 +125,6 @@ void lerCPF(char cpf[]) {
         valido = 1;
         fflush(stdin);
         scanf("%14s", cpf);
-      
         cpf[14] = '\0';
 
         tamanho = strlen(cpf);
@@ -99,6 +142,33 @@ void lerCPF(char cpf[]) {
 
         if (!valido) {
             printf("** CPF INVALIDO! Digite exatamente 11 numeros: ");
+        }
+    } while (!valido);
+}
+
+void lerTelefone(char telefone[]) {
+    int valido, i, tamanho;
+    do {
+        valido = 1;
+        fflush(stdin);
+        scanf("%19s", telefone);
+        telefone[19] = '\0';
+
+        tamanho = strlen(telefone);
+        if (tamanho < 8 || tamanho > 15) {
+            valido = 0;
+        } else {
+            i = 0;
+            while (telefone[i] != '\0' && valido == 1) {
+                if (!isdigit(telefone[i])) {
+                    valido = 0;
+                }
+                i++;
+            }
+        }
+
+        if (!valido) {
+            printf("** TELEFONE INVALIDO! Digite apenas numeros: ");
         }
     } while (!valido);
 }
@@ -149,11 +219,10 @@ char lerOpcaoSN() {
     return op;
 }
 
-//<=====BUSCAS=====>
+//<=============BUSCAS=============>
 int buscaAluno(char cpf[]) {
     Aluno Al;
     FILE *arqAluno = fopen("aluno.bin", "rb");
-    
     if (arqAluno == NULL) return -1; 
 
     int achei = -1;
@@ -176,7 +245,6 @@ int buscaAluno(char cpf[]) {
 int buscaInstrutor(char cpf[]) {
     Instrutor Inst;
     FILE *arqInstrutor = fopen("instrutor.bin", "rb");
-    
     if (arqInstrutor == NULL) return -1;
 
     int achei = -1;
@@ -199,7 +267,6 @@ int buscaInstrutor(char cpf[]) {
 int buscaAtividade(int id) {
     Atividade Atv;
     FILE *arqAtividade = fopen("atividade.bin", "rb");
-    
     if (arqAtividade == NULL) return -1;
 
     int achei = -1;
@@ -222,7 +289,6 @@ int buscaAtividade(int id) {
 int buscaPacote(int id) {
     Pacote Pc;
     FILE *arqPacote = fopen("pacote.bin", "rb");
-    
     if (arqPacote == NULL) return -1;
 
     int achei = -1;
@@ -245,7 +311,6 @@ int buscaPacote(int id) {
 int buscaPlano(int id) {
     Plano Pl;
     FILE *arqPlano = fopen("plano.bin", "rb");
-    
     if (arqPlano == NULL) return -1;
 
     int achei = -1;
@@ -265,161 +330,189 @@ int buscaPlano(int id) {
     return achei;
 }
 
-//<=====ORDENAÇÃO=====>
-void ordenarAluno()
-{
-	FILE *arqAluno = fopen("aluno.bin", "rb+");
-	Aluno Al, Ali;
-	int qtde=0, i;
-	if(arqAluno == NULL) return;
-	
-	fseek(arqAluno, 0, 2);
-	qtde = ftell(arqAluno) / sizeof(Aluno);
-	while(qtde > 1)
-	{
-		for(i = 0; i < qtde - 1; i++)
-		{
-			fseek(arqAluno, i * sizeof(Aluno), 0);
-			fread(&Al, sizeof(Aluno), 1, arqAluno);
-			fseek(arqAluno, (i + 1) * sizeof(Aluno), 0);
-			fread(&Ali, sizeof(Aluno), 1, arqAluno);
-			if(strcmp(Al.nome, Ali.nome) > 0)
-			{
-				fseek(arqAluno, i * sizeof(Aluno), 0);
-				fwrite(&Ali, sizeof(Aluno), 1, arqAluno);
-				fseek(arqAluno, (i + 1) * sizeof(Aluno), 0);
-				fwrite(&Al, sizeof(Aluno), 1, arqAluno);
-			}
-		}
-		qtde--;
-	}
-	fclose(arqAluno);
+//<=============GERADORES DE ID=============>
+int proximoIdAtividade() {
+    Atividade Atv;
+    FILE *arq = fopen("atividade.bin", "rb");
+    if (arq == NULL) return 1;
+    int maior = 0;
+    while (fread(&Atv, sizeof(Atividade), 1, arq) == 1) {
+        if (Atv.id > maior) maior = Atv.id;
+    }
+    fclose(arq);
+    return maior + 1;
 }
 
-void ordenarInstrutor()
-{
-	FILE *arqInstrutor = fopen("instrutor.bin", "rb+");
-	Instrutor Inst, Insti;
-	int qtde=0, i;
-	if(arqInstrutor == NULL) return;
-	
-	fseek(arqInstrutor, 0, 2);
-	qtde = ftell(arqInstrutor) / sizeof(Instrutor);
-	while(qtde > 1)
-	{
-		for(i = 0; i < qtde - 1; i++)
-		{
-			fseek(arqInstrutor, i * sizeof(Instrutor), 0);
-			fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
-			fseek(arqInstrutor, (i + 1) * sizeof(Instrutor), 0);
-			fread(&Insti, sizeof(Instrutor), 1, arqInstrutor);
-			if(strcmp(Inst.nome, Insti.nome) > 0)
-			{
-				fseek(arqInstrutor, i * sizeof(Instrutor), 0);
-				fwrite(&Insti, sizeof(Instrutor), 1, arqInstrutor);
-				fseek(arqInstrutor, (i + 1) * sizeof(Instrutor), 0);
-				fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
-			}
-		}
-		qtde--;
-	}
-	fclose(arqInstrutor);
+int proximoIdPacote() {
+    Pacote Pc;
+    FILE *arq = fopen("pacote.bin", "rb");
+    if (arq == NULL) return 1;
+    int maior = 0;
+    while (fread(&Pc, sizeof(Pacote), 1, arq) == 1) {
+        if (Pc.id > maior) maior = Pc.id;
+    }
+    fclose(arq);
+    return maior + 1;
 }
 
-void ordenarAtividade()
-{
-	FILE *arqAtividade = fopen("atividade.bin", "rb+");
-	Atividade Atv, Atvi;
-	int qtde=0, i;
-	if(arqAtividade == NULL) return;
-	
-	fseek(arqAtividade, 0, 2);
-	qtde = ftell(arqAtividade) / sizeof(Atividade);
-	while(qtde > 1)
-	{
-		for(i = 0; i < qtde - 1; i++)
-		{
-			fseek(arqAtividade, i * sizeof(Atividade), 0);
-			fread(&Atv, sizeof(Atividade), 1, arqAtividade);
-			fseek(arqAtividade, (i + 1) * sizeof(Atividade), 0);
-			fread(&Atvi, sizeof(Atividade), 1, arqAtividade);
-			if(strcmp(Atv.nome, Atvi.nome) > 0)
-			{
-				fseek(arqAtividade, i * sizeof(Atividade), 0);
-				fwrite(&Atvi, sizeof(Atividade), 1, arqAtividade);
-				fseek(arqAtividade, (i + 1) * sizeof(Atividade), 0);
-				fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
-			}
-		}
-		qtde--;
-	}
-	fclose(arqAtividade);
+int proximoIdPlano() {
+    Plano Pl;
+    FILE *arq = fopen("plano.bin", "rb");
+    if (arq == NULL) return 1;
+    int maior = 0;
+    while (fread(&Pl, sizeof(Plano), 1, arq) == 1) {
+        if (Pl.id > maior) maior = Pl.id;
+    }
+    fclose(arq);
+    return maior + 1;
 }
 
-void ordenarPacote()
-{
-	FILE *arqPacote = fopen("pacote.bin", "rb+");
-	Pacote Pc, Pci;
-	int qtde=0, i;
-	if(arqPacote == NULL) return;
-	
-	fseek(arqPacote, 0, 2);
-	qtde = ftell(arqPacote) / sizeof(Pacote);
-	while(qtde > 1)
-	{
-		for(i = 0; i < qtde - 1; i++)
-		{
-			fseek(arqPacote, i * sizeof(Pacote), 0);
-			fread(&Pc, sizeof(Pacote), 1, arqPacote);
-			fseek(arqPacote, (i + 1) * sizeof(Pacote), 0);
-			fread(&Pci, sizeof(Pacote), 1, arqPacote);
-			if(strcmp(Pc.nome, Pci.nome) > 0)
-			{
-				fseek(arqPacote, i * sizeof(Pacote), 0);
-				fwrite(&Pci, sizeof(Pacote), 1, arqPacote);
-				fseek(arqPacote, (i + 1) * sizeof(Pacote), 0);
-				fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
-			}
-		}
-		qtde--;
-	}
-	fclose(arqPacote);
+int proximoIdRecebimento() {
+    Recebimento Rec;
+    FILE *arq = fopen("recebimento.bin", "rb");
+    if (arq == NULL) return 1;
+    int maior = 0;
+    while (fread(&Rec, sizeof(Recebimento), 1, arq) == 1) {
+        if (Rec.id_recebimento > maior) maior = Rec.id_recebimento;
+    }
+    fclose(arq);
+    return maior + 1;
 }
 
-void ordenarPlano()
-{
-	FILE *arqPlano = fopen("plano.bin", "rb+");
-	Plano Pl, Pli;
-	int qtde=0, i;
-	if(arqPlano == NULL) return;
-	
-	fseek(arqPlano, 0, 2);
-	qtde = ftell(arqPlano) / sizeof(Plano);
-	while(qtde > 1)
-	{
-		for(i = 0; i < qtde - 1; i++)
-		{
-			fseek(arqPlano, i * sizeof(Plano), 0);
-			fread(&Pl, sizeof(Plano), 1, arqPlano);
-			fseek(arqPlano, (i + 1) * sizeof(Plano), 0);
-			fread(&Pli, sizeof(Plano), 1, arqPlano);
-			if(strcmp(Pl.nome, Pli.nome) > 0)
-			{
-				fseek(arqPlano, i * sizeof(Plano), 0);
-				fwrite(&Pli, sizeof(Plano), 1, arqPlano);
-				fseek(arqPlano, (i + 1) * sizeof(Plano), 0);
-				fwrite(&Pl, sizeof(Plano), 1, arqPlano);
-			}
-		}
-		qtde--;
-	}
-	fclose(arqPlano);
+//<=============ORDENAÇÃO=============>
+void ordenarAluno() {
+    FILE *arqAluno = fopen("aluno.bin", "rb+");
+    Aluno Al, Ali;
+    int qtde = 0, i;
+    if (arqAluno == NULL) return;
+    
+    fseek(arqAluno, 0, 2);
+    qtde = ftell(arqAluno) / sizeof(Aluno);
+    while (qtde > 1) {
+        for (i = 0; i < qtde - 1; i++) {
+            fseek(arqAluno, i * sizeof(Aluno), 0);
+            fread(&Al, sizeof(Aluno), 1, arqAluno);
+            fseek(arqAluno, (i + 1) * sizeof(Aluno), 0);
+            fread(&Ali, sizeof(Aluno), 1, arqAluno);
+            if (strcmp(Al.nome, Ali.nome) > 0) {
+                fseek(arqAluno, i * sizeof(Aluno), 0);
+                fwrite(&Ali, sizeof(Aluno), 1, arqAluno);
+                fseek(arqAluno, (i + 1) * sizeof(Aluno), 0);
+                fwrite(&Al, sizeof(Aluno), 1, arqAluno);
+            }
+        }
+        qtde--;
+    }
+    fclose(arqAluno);
+}
+
+void ordenarInstrutor() {
+    FILE *arqInstrutor = fopen("instrutor.bin", "rb+");
+    Instrutor Inst, Insti;
+    int qtde = 0, i;
+    if (arqInstrutor == NULL) return;
+    
+    fseek(arqInstrutor, 0, 2);
+    qtde = ftell(arqInstrutor) / sizeof(Instrutor);
+    while (qtde > 1) {
+        for (i = 0; i < qtde - 1; i++) {
+            fseek(arqInstrutor, i * sizeof(Instrutor), 0);
+            fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+            fseek(arqInstrutor, (i + 1) * sizeof(Instrutor), 0);
+            fread(&Insti, sizeof(Instrutor), 1, arqInstrutor);
+            if (strcmp(Inst.nome, Insti.nome) > 0) {
+                fseek(arqInstrutor, i * sizeof(Instrutor), 0);
+                fwrite(&Insti, sizeof(Instrutor), 1, arqInstrutor);
+                fseek(arqInstrutor, (i + 1) * sizeof(Instrutor), 0);
+                fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+            }
+        }
+        qtde--;
+    }
+    fclose(arqInstrutor);
+}
+
+void ordenarAtividade() {
+    FILE *arqAtividade = fopen("atividade.bin", "rb+");
+    Atividade Atv, Atvi;
+    int qtde = 0, i;
+    if (arqAtividade == NULL) return;
+    
+    fseek(arqAtividade, 0, 2);
+    qtde = ftell(arqAtividade) / sizeof(Atividade);
+    while (qtde > 1) {
+        for (i = 0; i < qtde - 1; i++) {
+            fseek(arqAtividade, i * sizeof(Atividade), 0);
+            fread(&Atv, sizeof(Atividade), 1, arqAtividade);
+            fseek(arqAtividade, (i + 1) * sizeof(Atividade), 0);
+            fread(&Atvi, sizeof(Atividade), 1, arqAtividade);
+            if (strcmp(Atv.nome, Atvi.nome) > 0) {
+                fseek(arqAtividade, i * sizeof(Atividade), 0);
+                fwrite(&Atvi, sizeof(Atividade), 1, arqAtividade);
+                fseek(arqAtividade, (i + 1) * sizeof(Atividade), 0);
+                fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
+            }
+        }
+        qtde--;
+    }
+    fclose(arqAtividade);
+}
+
+void ordenarPacote() {
+    FILE *arqPacote = fopen("pacote.bin", "rb+");
+    Pacote Pc, Pci;
+    int qtde = 0, i;
+    if (arqPacote == NULL) return;
+    
+    fseek(arqPacote, 0, 2);
+    qtde = ftell(arqPacote) / sizeof(Pacote);
+    while (qtde > 1) {
+        for (i = 0; i < qtde - 1; i++) {
+            fseek(arqPacote, i * sizeof(Pacote), 0);
+            fread(&Pc, sizeof(Pacote), 1, arqPacote);
+            fseek(arqPacote, (i + 1) * sizeof(Pacote), 0);
+            fread(&Pci, sizeof(Pacote), 1, arqPacote);
+            if (strcmp(Pc.nome, Pci.nome) > 0) {
+                fseek(arqPacote, i * sizeof(Pacote), 0);
+                fwrite(&Pci, sizeof(Pacote), 1, arqPacote);
+                fseek(arqPacote, (i + 1) * sizeof(Pacote), 0);
+                fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
+            }
+        }
+        qtde--;
+    }
+    fclose(arqPacote);
+}
+
+void ordenarPlano() {
+    FILE *arqPlano = fopen("plano.bin", "rb+");
+    Plano Pl, Pli;
+    int qtde = 0, i;
+    if (arqPlano == NULL) return;
+    
+    fseek(arqPlano, 0, 2);
+    qtde = ftell(arqPlano) / sizeof(Plano);
+    while (qtde > 1) {
+        for (i = 0; i < qtde - 1; i++) {
+            fseek(arqPlano, i * sizeof(Plano), 0);
+            fread(&Pl, sizeof(Plano), 1, arqPlano);
+            fseek(arqPlano, (i + 1) * sizeof(Plano), 0);
+            fread(&Pli, sizeof(Plano), 1, arqPlano);
+            if (strcmp(Pl.nome, Pli.nome) > 0) {
+                fseek(arqPlano, i * sizeof(Plano), 0);
+                fwrite(&Pli, sizeof(Plano), 1, arqPlano);
+                fseek(arqPlano, (i + 1) * sizeof(Plano), 0);
+                fwrite(&Pl, sizeof(Plano), 1, arqPlano);
+            }
+        }
+        qtde--;
+    }
+    fclose(arqPlano);
 }
 
 //<=====MENU=====>
-int menuPrincipal()
-{
-	system("cls");
+int menuPrincipal() {
+    system("cls");
     printf("\n==========================================");
     printf("\n   SISTEMA DE GESTAO DA ACADEMIA");
     printf("\n==========================================");
@@ -659,7 +752,7 @@ int selecionarAtividade() {
 int selecionarPacote() {
     FILE *arqPacote = fopen("pacote.bin", "rb");
     Pacote Pc;
-    int opSub, i, j, idx = -1, qtde = 0, id, val = 0;
+    int opSub, i, idx = -1, qtde = 0, id, val = 0;
 
     if (arqPacote == NULL) {
         printf("\n** Nenhum pacote cadastrado! **\n");
@@ -705,16 +798,8 @@ int selecionarPacote() {
                 printf("\n<=== LISTA DE PACOTES ===>\n");
                 for (i = 0; i < qtde; i++) {
                     fread(&Pc, sizeof(Pacote), 1, arqPacote);
-                    printf("[%d] ID: %d | Nome: %s | Atividades: ",
-                           i, Pc.id, Pc.nome);
-                    if (Pc.qtd_atividades == 0) {
-                        printf("Nao possui");
-                    } else {
-                        for (j = 0; j < Pc.qtd_atividades; j++) {
-                            printf("[%d] ", Pc.ids_atividades[j]);
-                        }
-                    }
-                    printf("\n");
+                    printf("[%d] ID: %d | Nome: %s | Aulas/Mes: %d\n",
+                           i, Pc.id, Pc.nome, Pc.qtd_aulas_mes);
                 }
                 fclose(arqPacote);
                 printf("-------------------------\n");
@@ -833,16 +918,18 @@ char cadastrarAluno() {
             strcpy(Al.cpf, temp_cpf);
             lerTextoApenasLetras("Insira o nome completo: ", Al.nome, sizeof(Al.nome));
 
-            printf("Insira o telefone: ");
-            fflush(stdin);
-            scanf("%19s", Al.telefone);
+            printf("Insira o telefone (apenas numeros): ");
+            lerTelefone(Al.telefone);
 
             Al.id_pacote = -1;
             Al.id_plano = -1;
             Al.status_matricula = 0;
 
-            fwrite(&Al, sizeof(Aluno), 1, arqAluno);
-            printf("\n** Aluno cadastrado com sucesso! **\n");
+            if (fwrite(&Al, sizeof(Aluno), 1, arqAluno) != 1) {
+                printf("\n** ERRO CRITICO: Falha ao gravar dados do aluno no disco! **\n");
+            } else {
+                printf("\n** Aluno cadastrado com sucesso! **\n");
+            }
         }
 
         fclose(arqAluno); 
@@ -879,8 +966,11 @@ char cadastrarInstrutor() {
             lerTextoApenasLetras("Insira o nome completo: ", Inst.nome, sizeof(Inst.nome));
             lerTextoApenasLetras("Insira a especialidade: ", Inst.especialidade, sizeof(Inst.especialidade));
 
-            fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
-            printf("\n** Instrutor cadastrado com sucesso! **\n");
+            if (fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor) != 1) {
+                printf("\n** ERRO CRITICO: Falha ao gravar instrutor! **\n");
+            } else {
+                printf("\n** Instrutor cadastrado com sucesso! **\n");
+            }
         }
 
         fclose(arqInstrutor); 
@@ -896,15 +986,10 @@ char cadastrarInstrutor() {
 
 char cadastrarAtividade() {
     Atividade Atv;
-    FILE *arqAtividade = fopen("atividade.bin", "rb");
-    int proximo_id = 1, idxInst;
+    FILE *arqAtividade;
+    int proximo_id, idxInst;
 
-    if (arqAtividade != NULL) {
-        fseek(arqAtividade, 0, 2);
-        proximo_id = (ftell(arqAtividade) / sizeof(Atividade)) + 1;
-        fclose(arqAtividade);
-    }
-
+    proximo_id = proximoIdAtividade();
     arqAtividade = fopen("atividade.bin", "ab");
     system("cls");
     if (arqAtividade != NULL) {
@@ -922,16 +1007,24 @@ char cadastrarAtividade() {
         }
 
         FILE *arqInstrutor = fopen("instrutor.bin", "rb");
-        Instrutor tempInst;
-        fseek(arqInstrutor, idxInst * sizeof(Instrutor), 0);
-        fread(&tempInst, sizeof(Instrutor), 1, arqInstrutor);
-        fclose(arqInstrutor);
-        strcpy(Atv.cpf_instrutor, tempInst.cpf);
+        if (arqInstrutor != NULL) {
+            Instrutor tempInst;
+            fseek(arqInstrutor, idxInst * sizeof(Instrutor), 0);
+            fread(&tempInst, sizeof(Instrutor), 1, arqInstrutor);
+            fclose(arqInstrutor);
+            strcpy(Atv.cpf_instrutor, tempInst.cpf);
+        } else {
+            strcpy(Atv.cpf_instrutor, "");
+        }
 
-        fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
+        if (fwrite(&Atv, sizeof(Atividade), 1, arqAtividade) != 1) {
+            printf("\n** ERRO CRITICO: Falha ao gravar atividade! **\n");
+        } else {
+            printf("\n** Atividade cadastrada com sucesso! **\n");
+        }
+        
         fclose(arqAtividade);
         ordenarAtividade();
-        printf("\n** Atividade cadastrada com sucesso! **\n");
 
         printf("Deseja cadastrar outra atividade? (S/N): ");
         return lerOpcaoSN();
@@ -943,16 +1036,11 @@ char cadastrarAtividade() {
 
 char cadastrarPacote() {
     Pacote Pc;
-    FILE *arqPacote = fopen("pacote.bin", "rb");
-    int proximo_id = 1, idxAtiv, jaExiste, k, val = 0;
+    FILE *arqPacote;
+    int proximo_id, idxAtiv, jaExiste, k, val = 0;
     char continuar = 'S';
 
-    if (arqPacote != NULL) {
-        fseek(arqPacote, 0, 2);
-        proximo_id = (ftell(arqPacote) / sizeof(Pacote)) + 1;
-        fclose(arqPacote);
-    }
-
+    proximo_id = proximoIdPacote();
     arqPacote = fopen("pacote.bin", "ab");
     system("cls");
     if (arqPacote != NULL) {
@@ -962,6 +1050,13 @@ char cadastrarPacote() {
 
         lerTextoApenasLetras("Insira o nome do Pacote: ", Pc.nome, sizeof(Pc.nome));
 
+        printf("Insira a quantidade de aulas por mes: ");
+        Pc.qtd_aulas_mes = lerInteiro();
+        while (Pc.qtd_aulas_mes <= 0) {
+            printf("** VALOR INVALIDO! Digite uma quantidade maior que zero: ");
+            Pc.qtd_aulas_mes = lerInteiro();
+        }
+
         while (val == 0 && continuar == 'S' && Pc.qtd_atividades < 10) {
             idxAtiv = selecionarAtividade();
             if (idxAtiv == -1) {
@@ -969,22 +1064,24 @@ char cadastrarPacote() {
             } else {
                 Atividade Atv;
                 FILE *arqAtividade = fopen("atividade.bin", "rb");
-                fseek(arqAtividade, idxAtiv * sizeof(Atividade), 0);
-                fread(&Atv, sizeof(Atividade), 1, arqAtividade);
-                fclose(arqAtividade);
+                if (arqAtividade != NULL) {
+                    fseek(arqAtividade, idxAtiv * sizeof(Atividade), 0);
+                    fread(&Atv, sizeof(Atividade), 1, arqAtividade);
+                    fclose(arqAtividade);
 
-                jaExiste = 0;
-                for (k = 0; k < Pc.qtd_atividades; k++) {
-                    if (Pc.ids_atividades[k] == Atv.id) jaExiste = 1;
-                }
-                if (jaExiste) {
-                    printf("** AVISO: Atividade ja esta neste pacote! **\n");
-                    system("pause");
-                } else {
-                    Pc.ids_atividades[Pc.qtd_atividades] = Atv.id;
-                    Pc.qtd_atividades++;
-                    printf("** Atividade associada ao pacote! **\n");
-                    system("pause");
+                    jaExiste = 0;
+                    for (k = 0; k < Pc.qtd_atividades; k++) {
+                        if (Pc.ids_atividades[k] == Atv.id) jaExiste = 1;
+                    }
+                    if (jaExiste) {
+                        printf("** AVISO: Atividade ja esta neste pacote! **\n");
+                        system("pause");
+                    } else {
+                        Pc.ids_atividades[Pc.qtd_atividades] = Atv.id;
+                        Pc.qtd_atividades++;
+                        printf("** Atividade associada ao pacote! **\n");
+                        system("pause");
+                    }
                 }
 
                 if (Pc.qtd_atividades < 10) {
@@ -994,10 +1091,14 @@ char cadastrarPacote() {
             }
         }
 
-        fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
+        if (fwrite(&Pc, sizeof(Pacote), 1, arqPacote) != 1) {
+            printf("\n** ERRO CRITICO: Falha ao gravar pacote! **\n");
+        } else {
+            printf("\n** Pacote cadastrado com sucesso! **\n");
+        }
+
         fclose(arqPacote);
         ordenarPacote();
-        printf("\n** Pacote cadastrado com sucesso! **\n");
 
         printf("\nDeseja cadastrar outro pacote? (S/N): ");
         return lerOpcaoSN();
@@ -1009,16 +1110,11 @@ char cadastrarPacote() {
 
 char cadastrarPlano() {
     Plano Pl;
-    FILE *arqPlano = fopen("plano.bin", "rb");
-    int proximo_id = 1;
+    FILE *arqPlano;
+    int proximo_id;
     char tipo;
 
-    if (arqPlano != NULL) {
-        fseek(arqPlano, 0, 2);
-        proximo_id = (ftell(arqPlano) / sizeof(Plano)) + 1;
-        fclose(arqPlano);
-    }
-
+    proximo_id = proximoIdPlano();
     arqPlano = fopen("plano.bin", "ab");
     system("cls");
     if (arqPlano != NULL) {
@@ -1044,10 +1140,14 @@ char cadastrarPlano() {
             Pl.valor_base = lerFloat();
         }
 
-        fwrite(&Pl, sizeof(Plano), 1, arqPlano);
+        if (fwrite(&Pl, sizeof(Plano), 1, arqPlano) != 1) {
+            printf("\n** ERRO CRITICO: Falha ao gravar plano! **\n");
+        } else {
+            printf("\n** Plano cadastrado com sucesso! **\n");
+        }
+
         fclose(arqPlano);
         ordenarPlano();
-        printf("\n** Plano cadastrado com sucesso! **\n");
 
         printf("\nDeseja cadastrar outro plano? (S/N): ");
         return lerOpcaoSN();
@@ -1058,8 +1158,7 @@ char cadastrarPlano() {
 }
 
 //<=====CONSULTAS=====>
-void consultarAluno() 
-{
+void consultarAluno() {
     Aluno Al;
     int pos = selecionarAluno();
     if (pos != -1) {
@@ -1093,8 +1192,7 @@ void consultarAluno()
     }
 }
 
-void consultarInstrutor() 
-{
+void consultarInstrutor() {
     Instrutor Inst;
     int pos = selecionarInstrutor();
     if (pos != -1) {
@@ -1114,8 +1212,7 @@ void consultarInstrutor()
     }
 }
 
-void consultarAtividade() 
-{
+void consultarAtividade() {
     Atividade Atv;
     int pos = selecionarAtividade();
     if (pos != -1) {
@@ -1135,10 +1232,10 @@ void consultarAtividade()
     }
 }
 
-void consultarPacote() 
-{
+void consultarPacote() {
     Pacote Pc;
     int pos = selecionarPacote();
+    int j; 
     if (pos != -1) {
         FILE *arqPacote = fopen("pacote.bin", "rb");
         if (arqPacote != NULL) {
@@ -1150,11 +1247,12 @@ void consultarPacote()
             printf("\n** Pacote encontrado! **\n");
             printf("ID: %d\n", Pc.id);
             printf("Nome: %s\n", Pc.nome);
+            printf("Quantidade de Aulas por Mes: %d\n", Pc.qtd_aulas_mes);
             printf("Atividades: ");
             if (Pc.qtd_atividades == 0) {
                 printf("Nao possui");
             } else {
-                for (int j = 0; j < Pc.qtd_atividades; j++) {
+                for (j = 0; j < Pc.qtd_atividades; j++) {
                     printf("[%d] ", Pc.ids_atividades[j]);
                 }
             }
@@ -1164,8 +1262,7 @@ void consultarPacote()
     }
 }
 
-void consultarPlano() 
-{
+void consultarPlano() {
     Plano Pl;
     int pos = selecionarPlano();
     if (pos != -1) {
@@ -1186,11 +1283,9 @@ void consultarPlano()
     }
 }
 
-void consultarPessoas() 
-{
+void consultarPessoas() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- CONSULTAR PESSOAS ---");
         printf("\n1. Aluno");
@@ -1226,19 +1321,71 @@ void alterarAluno() {
 
     system("cls");
     printf("\n--- ALTERAR DADOS DO ALUNO ---");
+    printf("\nCPF atual: %s", Al.cpf);
+    printf("\nDeseja alterar o CPF? (S/N): ");
+    if (lerOpcaoSN() == 'S') {
+        char novoCpf[20];
+        int cpfValido = 0;
+
+        while (!cpfValido) {
+            printf("Digite o NOVO CPF (apenas numeros): ");
+            lerCPF(novoCpf);
+
+            if (buscaAluno(novoCpf) != -1 || buscaInstrutor(novoCpf) != -1) {
+                printf("\n** ERRO: Este CPF ja esta cadastrado no sistema! **\n");
+            } else {
+                cpfValido = 1;
+            }
+
+            if (!cpfValido) {
+                printf("Deseja tentar redigir o CPF novamente? (S/N): ");
+                if (lerOpcaoSN() == 'N') {
+                    printf("\n** Alteracao de CPF cancelada. Mantendo CPF anterior. **\n");
+                    break;
+                }
+            }
+        }
+
+        if (cpfValido) {
+            char cpfAntigo[15];
+            strcpy(cpfAntigo, Al.cpf);
+            strcpy(Al.cpf, novoCpf);
+
+            FILE *arqRec = fopen("recebimento.bin", "rb+");
+            if (arqRec != NULL) {
+                Recebimento Rec;
+                long recPos = 0;
+                while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+                    if (strcmp(Rec.cpf_aluno, cpfAntigo) == 0) {
+                        strcpy(Rec.cpf_aluno, novoCpf);
+                        fseek(arqRec, recPos, SEEK_SET);
+                        fwrite(&Rec, sizeof(Recebimento), 1, arqRec);
+                        fflush(arqRec);
+                        fseek(arqRec, recPos + sizeof(Recebimento), SEEK_SET);
+                    }
+                    recPos = ftell(arqRec);
+                }
+                fclose(arqRec);
+            }
+            printf("\n** CPF alterado com sucesso! **\n");
+        }
+    }
+
     printf("\nNome atual: %s", Al.nome);
     lerTextoApenasLetras("\nNovo nome completo: ", Al.nome, sizeof(Al.nome));
 
-    printf("Novo telefone: ");
-    fflush(stdin);
-    scanf("%19s", Al.telefone);
+    printf("Novo telefone (apenas numeros): ");
+    lerTelefone(Al.telefone);
 
     fseek(arqAluno, pos * sizeof(Aluno), SEEK_SET);
-    fwrite(&Al, sizeof(Aluno), 1, arqAluno);
+    if (fwrite(&Al, sizeof(Aluno), 1, arqAluno) != 1) {
+        printf("\n** ERRO CRITICO: Falha ao atualizar dados do aluno! **\n");
+    } else {
+        printf("\n** Aluno alterado com sucesso! **\n");
+    }
     fclose(arqAluno);
 
     ordenarAluno();
-    printf("\n** Aluno alterado com sucesso! **\n");
     system("pause");
 }
 
@@ -1259,16 +1406,69 @@ void alterarInstrutor() {
 
     system("cls");
     printf("\n--- ALTERAR DADOS DO INSTRUTOR ---");
+    printf("\nCPF atual: %s", Inst.cpf);
+    printf("\nDeseja alterar o CPF? (S/N): ");
+    if (lerOpcaoSN() == 'S') {
+        char novoCpf[20];
+        int cpfValido = 0;
+
+        while (!cpfValido) {
+            printf("Digite o NOVO CPF (apenas numeros): ");
+            lerCPF(novoCpf);
+
+            if (buscaAluno(novoCpf) != -1 || buscaInstrutor(novoCpf) != -1) {
+                printf("\n** ERRO: Este CPF ja esta cadastrado no sistema! **\n");
+            } else {
+                cpfValido = 1;
+            }
+
+            if (!cpfValido) {
+                printf("Deseja tentar redigir o CPF novamente? (S/N): ");
+                if (lerOpcaoSN() == 'N') {
+                    printf("\n** Alteracao de CPF cancelada. Mantendo CPF anterior. **\n");
+                    break;
+                }
+            }
+        }
+
+        if (cpfValido) {
+            char cpfAntigo[15];
+            strcpy(cpfAntigo, Inst.cpf);
+            strcpy(Inst.cpf, novoCpf);
+
+            FILE *arqAtv = fopen("atividade.bin", "rb+");
+            if (arqAtv != NULL) {
+                Atividade Atv;
+                long atvPos = 0;
+                while (fread(&Atv, sizeof(Atividade), 1, arqAtv) == 1) {
+                    if (strcmp(Atv.cpf_instrutor, cpfAntigo) == 0) {
+                        strcpy(Atv.cpf_instrutor, novoCpf);
+                        fseek(arqAtv, atvPos, SEEK_SET);
+                        fwrite(&Atv, sizeof(Atividade), 1, arqAtv);
+                        fflush(arqAtv);
+                        fseek(arqAtv, atvPos + sizeof(Atividade), SEEK_SET);
+                    }
+                    atvPos = ftell(arqAtv);
+                }
+                fclose(arqAtv);
+            }
+            printf("\n** CPF do instrutor alterado com sucesso! **\n");
+        }
+    }
+
     printf("\nNome atual: %s", Inst.nome);
     lerTextoApenasLetras("\nNovo nome completo: ", Inst.nome, sizeof(Inst.nome));
     lerTextoApenasLetras("Nova especialidade: ", Inst.especialidade, sizeof(Inst.especialidade));
 
     fseek(arqInstrutor, pos * sizeof(Instrutor), SEEK_SET);
-    fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor);
+    if (fwrite(&Inst, sizeof(Instrutor), 1, arqInstrutor) != 1) {
+        printf("\n** ERRO CRITICO: Falha ao atualizar instrutor! **\n");
+    } else {
+        printf("\n** Instrutor alterado com sucesso! **\n");
+    }
     fclose(arqInstrutor);
 
     ordenarInstrutor();
-    printf("\n** Instrutor alterado com sucesso! **\n");
     system("pause");
 }
 
@@ -1292,22 +1492,30 @@ void alterarAtividade() {
     printf("\nNome atual: %s", Atv.nome);
     lerTextoApenasLetras("\nNovo nome da Atividade: ", Atv.nome, sizeof(Atv.nome));
 
-    int idxInst = selecionarInstrutor();
-    if (idxInst != -1) {
-        FILE *arqInst = fopen("instrutor.bin", "rb");
-        Instrutor tempInst;
-        fseek(arqInst, idxInst * sizeof(Instrutor), SEEK_SET);
-        fread(&tempInst, sizeof(Instrutor), 1, arqInst);
-        fclose(arqInst);
-        strcpy(Atv.cpf_instrutor, tempInst.cpf);
+    printf("Deseja alterar o Instrutor responsavel? (S/N): ");
+    if (lerOpcaoSN() == 'S') {
+        int idxInst = selecionarInstrutor();
+        if (idxInst != -1) {
+            FILE *arqInst = fopen("instrutor.bin", "rb");
+            if (arqInst != NULL) {
+                Instrutor tempInst;
+                fseek(arqInst, idxInst * sizeof(Instrutor), SEEK_SET);
+                fread(&tempInst, sizeof(Instrutor), 1, arqInst);
+                fclose(arqInst);
+                strcpy(Atv.cpf_instrutor, tempInst.cpf);
+            }
+        }
     }
 
     fseek(arqAtividade, pos * sizeof(Atividade), SEEK_SET);
-    fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
+    if (fwrite(&Atv, sizeof(Atividade), 1, arqAtividade) != 1) {
+        printf("\n** ERRO CRITICO: Falha ao atualizar atividade! **\n");
+    } else {
+        printf("\n** Atividade alterada com sucesso! **\n");
+    }
     fclose(arqAtividade);
 
     ordenarAtividade();
-    printf("\n** Atividade alterada com sucesso! **\n");
     system("pause");
 }
 
@@ -1331,6 +1539,14 @@ void alterarPacote() {
     printf("\nNome atual: %s", Pc.nome);
     lerTextoApenasLetras("\nNovo nome do Pacote: ", Pc.nome, sizeof(Pc.nome));
 
+    printf("\nQuantidade atual de aulas por mes: %d", Pc.qtd_aulas_mes);
+    printf("\nNova quantidade de aulas por mes: ");
+    Pc.qtd_aulas_mes = lerInteiro();
+    while (Pc.qtd_aulas_mes <= 0) {
+        printf("** VALOR INVALIDO! Digite uma quantidade maior que zero: ");
+        Pc.qtd_aulas_mes = lerInteiro();
+    }
+
     printf("\nDeseja reconfigurar as atividades deste pacote? (S/N): ");
     if (lerOpcaoSN() == 'S') {
         Pc.qtd_atividades = 0;
@@ -1344,22 +1560,24 @@ void alterarPacote() {
             } else {
                 Atividade Atv;
                 FILE *arqAtv = fopen("atividade.bin", "rb");
-                fseek(arqAtv, idxAtiv * sizeof(Atividade), SEEK_SET);
-                fread(&Atv, sizeof(Atividade), 1, arqAtv);
-                fclose(arqAtv);
+                if (arqAtv != NULL) {
+                    fseek(arqAtv, idxAtiv * sizeof(Atividade), SEEK_SET);
+                    fread(&Atv, sizeof(Atividade), 1, arqAtv);
+                    fclose(arqAtv);
 
-                jaExiste = 0;
-                for (k = 0; k < Pc.qtd_atividades; k++) {
-                    if (Pc.ids_atividades[k] == Atv.id) jaExiste = 1;
-                }
-                if (jaExiste) {
-                    printf("** AVISO: Atividade ja esta neste pacote! **\n");
-                    system("pause");
-                } else {
-                    Pc.ids_atividades[Pc.qtd_atividades] = Atv.id;
-                    Pc.qtd_atividades++;
-                    printf("** Atividade associada ao pacote! **\n");
-                    system("pause");
+                    jaExiste = 0;
+                    for (k = 0; k < Pc.qtd_atividades; k++) {
+                        if (Pc.ids_atividades[k] == Atv.id) jaExiste = 1;
+                    }
+                    if (jaExiste) {
+                        printf("** AVISO: Atividade ja esta neste pacote! **\n");
+                        system("pause");
+                    } else {
+                        Pc.ids_atividades[Pc.qtd_atividades] = Atv.id;
+                        Pc.qtd_atividades++;
+                        printf("** Atividade associada ao pacote! **\n");
+                        system("pause");
+                    }
                 }
 
                 if (Pc.qtd_atividades < 10) {
@@ -1371,11 +1589,14 @@ void alterarPacote() {
     }
 
     fseek(arqPacote, pos * sizeof(Pacote), SEEK_SET);
-    fwrite(&Pc, sizeof(Pacote), 1, arqPacote);
+    if (fwrite(&Pc, sizeof(Pacote), 1, arqPacote) != 1) {
+        printf("\n** ERRO CRITICO: Falha ao atualizar pacote! **\n");
+    } else {
+        printf("\n** Pacote alterado com sucesso! **\n");
+    }
     fclose(arqPacote);
 
     ordenarPacote();
-    printf("\n** Pacote alterado com sucesso! **\n");
     system("pause");
 }
 
@@ -1393,6 +1614,8 @@ void alterarPlano() {
     Plano Pl;
     fseek(arqPlano, pos * sizeof(Plano), SEEK_SET);
     fread(&Pl, sizeof(Plano), 1, arqPlano);
+
+    int idAntigo = Pl.id;
 
     system("cls");
     printf("\n--- ALTERAR DADOS DO PLANO ---");
@@ -1418,19 +1641,45 @@ void alterarPlano() {
     }
 
     fseek(arqPlano, pos * sizeof(Plano), SEEK_SET);
-    fwrite(&Pl, sizeof(Plano), 1, arqPlano);
+    if (fwrite(&Pl, sizeof(Plano), 1, arqPlano) != 1) {
+        printf("\n** ERRO CRITICO: Falha ao atualizar plano! **\n");
+    }
     fclose(arqPlano);
 
+    FILE *arqAl = fopen("aluno.bin", "rb");
+    if (arqAl != NULL) {
+        Aluno tempAl;
+        while (fread(&tempAl, sizeof(Aluno), 1, arqAl) == 1) {
+            if (tempAl.id_plano == idAntigo && tempAl.status_matricula == 1) {
+                FILE *arqRec = fopen("recebimento.bin", "rb+");
+                if (arqRec != NULL) {
+                    Recebimento Rec;
+                    long recPos = 0;
+                    while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+                        if (strcmp(Rec.cpf_aluno, tempAl.cpf) == 0 && Rec.status_pago == 0) {
+                            Rec.valor_cobrado = Pl.valor_base;
+                            fseek(arqRec, recPos, SEEK_SET);
+                            fwrite(&Rec, sizeof(Recebimento), 1, arqRec);
+                            fflush(arqRec);
+                            fseek(arqRec, recPos + sizeof(Recebimento), SEEK_SET);
+                        }
+                        recPos = ftell(arqRec);
+                    }
+                    fclose(arqRec);
+                }
+            }
+        }
+        fclose(arqAl);
+    }
+
     ordenarPlano();
-    printf("\n** Plano alterado com sucesso! **\n");
+    printf("\n** Plano alterado com sucesso e boletos pendentes atualizados! **\n");
     system("pause");
 }
 
-void alterarPessoa() 
-{
+void alterarPessoa() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- ALTERAR PESSOA ---");
         printf("\n1. Aluno");
@@ -1448,7 +1697,7 @@ void alterarPessoa()
     } while (op != 0);
 }
 
-//<=====EXCLUSÕES COM VERIFICAÇÃO COMPLETA DE DEPENDÊNCIAS=====>
+//<=====EXCLUSÕES=====>
 void excluirAlunoReal() {
     FILE *arqAluno, *arqTemp;
     Aluno Al;
@@ -1458,6 +1707,7 @@ void excluirAlunoReal() {
     if (pos == -1) return;
 
     arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno == NULL) return;
     fseek(arqAluno, pos * sizeof(Aluno), 0);
     fread(&Al, sizeof(Aluno), 1, arqAluno);
     fclose(arqAluno);
@@ -1482,12 +1732,8 @@ void excluirAlunoReal() {
         printf("\n**************************************************");
         printf("\n**          AVISO DE PENDENCIAS DO ALUNO        **");
         printf("\n**************************************************");
-        if (temMatriculaAtiva) {
-            printf("\n- Aluno possui MATRICULA ATIVA no sistema!");
-        }
-        if (temBoletos) {
-            printf("\n- Aluno possui BOLETOS / RECEBIMENTOS registrados!");
-        }
+        if (temMatriculaAtiva) printf("\n- Aluno possui MATRICULA ATIVA no sistema!");
+        if (temBoletos) printf("\n- Aluno possui BOLETOS / RECEBIMENTOS registrados!");
         printf("\n--------------------------------------------------");
         printf("\nDeseja realmente excluir este aluno mesmo com essas pendencias? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
@@ -1509,17 +1755,29 @@ void excluirAlunoReal() {
         arqTemp = fopen("auxiliar.bin", "wb");
         
         if (arqAluno != NULL && arqTemp != NULL) {
+            int sucesso = 1;
             while (fread(&Al, sizeof(Aluno), 1, arqAluno) == 1) {
                 if (strcmp(Al.cpf, cpfExcluir) != 0) {
-                    fwrite(&Al, sizeof(Aluno), 1, arqTemp);
+                    if (fwrite(&Al, sizeof(Aluno), 1, arqTemp) != 1) {
+                        sucesso = 0;
+                    }
                 }
             }
             fclose(arqTemp);
             fclose(arqAluno);
-            remove("aluno.bin");
-            rename("auxiliar.bin", "aluno.bin");
-            ordenarAluno();
-            printf("\n** O aluno foi excluido com sucesso! **\n");
+
+            if (sucesso) {
+                remove("aluno.bin");
+                if (rename("auxiliar.bin", "aluno.bin") == 0) {
+                    ordenarAluno();
+                    printf("\n** O aluno foi excluido com sucesso! **\n");
+                } else {
+                    printf("\n** ERRO CRITICO: Falha ao substituir arquivo de alunos! **\n");
+                }
+            } else {
+                remove("auxiliar.bin");
+                printf("\n** ERRO CRITICO: Falha durante a gravacao temporaria! Exclusao cancelada. **\n");
+            }
         } else {
             if (arqAluno) fclose(arqAluno);
             if (arqTemp) fclose(arqTemp);
@@ -1538,6 +1796,7 @@ void excluirInstrutor() {
     if (pos == -1) return;
 
     arqInstrutor = fopen("instrutor.bin", "rb");
+    if (arqInstrutor == NULL) return;
     fseek(arqInstrutor, pos * sizeof(Instrutor), 0);
     fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
     fclose(arqInstrutor);
@@ -1559,6 +1818,7 @@ void excluirInstrutor() {
         printf("\n**        AVISO DE VINCULOS DO INSTRUTOR        **");
         printf("\n**************************************************");
         printf("\n- O instrutor possui ATIVIDADES VINCULADAS a ele!");
+        printf("\n- AVISO: Se excluir, as atividades ficarao sem instrutor.");
         printf("\n--------------------------------------------------");
         printf("\nDeseja realmente excluir mesmo com essas atividades? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
@@ -1568,7 +1828,6 @@ void excluirInstrutor() {
     printf("\n--- EXCLUIR INSTRUTOR ---");
     printf("\nNome: %s", Inst.nome);
     printf("\nCPF: %s", Inst.cpf);
-    printf("\nEspecialidade: %s", Inst.especialidade);
     printf("\n-------------------");
     printf("\nConfirmar exclusao definitiva? (S/N): ");
     
@@ -1576,21 +1835,52 @@ void excluirInstrutor() {
         char cpfExcluir[15];
         strcpy(cpfExcluir, Inst.cpf);
 
+        FILE *fAtvRead = fopen("atividade.bin", "rb");
+        FILE *fAtvTemp = fopen("aux_atv.bin", "wb");
+        int okAtv = 1;
+        if (fAtvRead != NULL && fAtvTemp != NULL) {
+            Atividade tempAtv;
+            while (fread(&tempAtv, sizeof(Atividade), 1, fAtvRead) == 1) {
+                if (strcmp(tempAtv.cpf_instrutor, cpfExcluir) == 0) {
+                    strcpy(tempAtv.cpf_instrutor, "");
+                }
+                if (fwrite(&tempAtv, sizeof(Atividade), 1, fAtvTemp) != 1) okAtv = 0;
+            }
+            fclose(fAtvTemp);
+            fclose(fAtvRead);
+            if (okAtv) {
+                remove("atividade.bin");
+                rename("aux_atv.bin", "atividade.bin");
+            } else {
+                remove("aux_atv.bin");
+            }
+        }
+
         arqInstrutor = fopen("instrutor.bin", "rb");
         arqTemp = fopen("auxiliar.bin", "wb");
         
         if (arqInstrutor != NULL && arqTemp != NULL) {
+            int sucesso = 1;
             while (fread(&Inst, sizeof(Instrutor), 1, arqInstrutor) == 1) {
                 if (strcmp(Inst.cpf, cpfExcluir) != 0) {
-                    fwrite(&Inst, sizeof(Instrutor), 1, arqTemp);
+                    if (fwrite(&Inst, sizeof(Instrutor), 1, arqTemp) != 1) sucesso = 0;
                 }
             }
             fclose(arqTemp);
             fclose(arqInstrutor);
-            remove("instrutor.bin");
-            rename("auxiliar.bin", "instrutor.bin");
-            ordenarInstrutor();
-            printf("\n** O instrutor foi excluido com sucesso! **\n");
+
+            if (sucesso) {
+                remove("instrutor.bin");
+                if (rename("auxiliar.bin", "instrutor.bin") == 0) {
+                    ordenarInstrutor();
+                    printf("\n** O instrutor foi excluido com sucesso! **\n");
+                } else {
+                    printf("\n** ERRO CRITICO: Falha ao substituir arquivo de instrutores! **\n");
+                }
+            } else {
+                remove("auxiliar.bin");
+                printf("\n** ERRO CRITICO: Falha na gravacao transacional! **\n");
+            }
         } else {
             if (arqInstrutor) fclose(arqInstrutor);
             if (arqTemp) fclose(arqTemp);
@@ -1609,6 +1899,7 @@ void excluirAtividade() {
     if (pos == -1) return;
 
     arqAtividade = fopen("atividade.bin", "rb");
+    if (arqAtividade == NULL) return;
     fseek(arqAtividade, pos * sizeof(Atividade), 0);
     fread(&Atv, sizeof(Atividade), 1, arqAtividade);
     fclose(arqAtividade);
@@ -1634,6 +1925,7 @@ void excluirAtividade() {
         printf("\n**         AVISO DE VINCULOS DA ATIVIDADE       **");
         printf("\n**************************************************");
         printf("\n- A atividade esta associada a um ou mais PACOTES!");
+        printf("\n- AVISO: Se excluir, ela sera removida dos pacotes.");
         printf("\n--------------------------------------------------");
         printf("\nDeseja realmente excluir mesmo assim? (S/N): ");
         if (lerOpcaoSN() == 'N') return;
@@ -1648,21 +1940,63 @@ void excluirAtividade() {
 
     if (lerOpcaoSN() == 'S') {
         int idExcluir = Atv.id;
+
+        FILE *fPcRead = fopen("pacote.bin", "rb");
+        FILE *fPcTemp = fopen("aux_pc.bin", "wb");
+        int okPc = 1;
+        if (fPcRead != NULL && fPcTemp != NULL) {
+            Pacote tempPc;
+            while (fread(&tempPc, sizeof(Pacote), 1, fPcRead) == 1) {
+                int k = 0, novaQtd = 0;
+                int novasAtividades[10];
+                while (k < tempPc.qtd_atividades) {
+                    if (tempPc.ids_atividades[k] != idExcluir) {
+                        novasAtividades[novaQtd] = tempPc.ids_atividades[k];
+                        novaQtd++;
+                    }
+                    k++;
+                }
+                tempPc.qtd_atividades = novaQtd;
+                for (k = 0; k < novaQtd; k++) {
+                    tempPc.ids_atividades[k] = novasAtividades[k];
+                }
+                if (fwrite(&tempPc, sizeof(Pacote), 1, fPcTemp) != 1) okPc = 0;
+            }
+            fclose(fPcTemp);
+            fclose(fPcRead);
+            if (okPc) {
+                remove("pacote.bin");
+                rename("aux_pc.bin", "pacote.bin");
+            } else {
+                remove("aux_pc.bin");
+            }
+        }
+
         arqAtividade = fopen("atividade.bin", "rb");
         arqTemp = fopen("auxiliar.bin", "wb");
 
         if (arqAtividade != NULL && arqTemp != NULL) {
+            int sucesso = 1;
             while (fread(&Atv, sizeof(Atividade), 1, arqAtividade) == 1) {
                 if (Atv.id != idExcluir) {
-                    fwrite(&Atv, sizeof(Atividade), 1, arqTemp);
+                    if (fwrite(&Atv, sizeof(Atividade), 1, arqTemp) != 1) sucesso = 0;
                 }
             }
             fclose(arqTemp);
             fclose(arqAtividade);
-            remove("atividade.bin");
-            rename("auxiliar.bin", "atividade.bin");
-            ordenarAtividade();
-            printf("\n** A atividade foi excluida com sucesso! **\n");
+
+            if (sucesso) {
+                remove("atividade.bin");
+                if (rename("auxiliar.bin", "atividade.bin") == 0) {
+                    ordenarAtividade();
+                    printf("\n** A atividade foi excluida com sucesso! **\n");
+                } else {
+                    printf("\n** ERRO CRITICO: Falha ao substituir arquivo de atividades! **\n");
+                }
+            } else {
+                remove("auxiliar.bin");
+                printf("\n** ERRO CRITICO: Falha na gravacao transacional! **\n");
+            }
         }
     }
     system("pause");
@@ -1677,6 +2011,7 @@ void excluirPacote() {
     if (pos == -1) return;
 
     arqPacote = fopen("pacote.bin", "rb");
+    if (arqPacote == NULL) return;
     fseek(arqPacote, pos * sizeof(Pacote), 0);
     fread(&Pc, sizeof(Pacote), 1, arqPacote);
     fclose(arqPacote);
@@ -1695,12 +2030,14 @@ void excluirPacote() {
 
     if (alunosAtivosVinculados) {
         printf("\n**************************************************");
-        printf("\n**          AVISO DE VINCULOS DO PACOTE         **");
+        printf("\n**          BLOQUEIO DE SEGURANCA               **");
         printf("\n**************************************************");
         printf("\n- O pacote esta vinculado a ALUNOS COM MATRICULA ATIVA!");
+        printf("\n- Impossivel excluir pacotes com matriculas ativas.");
+        printf("\n- Realize o cancelamento ou alteracao do aluno primeiro.");
         printf("\n--------------------------------------------------");
-        printf("\nDeseja realmente excluir mesmo assim? (S/N): ");
-        if (lerOpcaoSN() == 'N') return;
+        system("pause");
+        return;
     }
 
     system("cls");
@@ -1712,21 +2049,32 @@ void excluirPacote() {
 
     if (lerOpcaoSN() == 'S') {
         int idExcluir = Pc.id;
+
         arqPacote = fopen("pacote.bin", "rb");
         arqTemp = fopen("auxiliar.bin", "wb");
 
         if (arqPacote != NULL && arqTemp != NULL) {
+            int sucesso = 1;
             while (fread(&Pc, sizeof(Pacote), 1, arqPacote) == 1) {
                 if (Pc.id != idExcluir) {
-                    fwrite(&Pc, sizeof(Pacote), 1, arqTemp);
+                    if (fwrite(&Pc, sizeof(Pacote), 1, arqTemp) != 1) sucesso = 0;
                 }
             }
             fclose(arqTemp);
             fclose(arqPacote);
-            remove("pacote.bin");
-            rename("auxiliar.bin", "pacote.bin");
-            ordenarPacote();
-            printf("\n** O pacote foi excluido com sucesso! **\n");
+
+            if (sucesso) {
+                remove("pacote.bin");
+                if (rename("auxiliar.bin", "pacote.bin") == 0) {
+                    ordenarPacote();
+                    printf("\n** O pacote foi excluido com sucesso! **\n");
+                } else {
+                    printf("\n** ERRO CRITICO: Falha ao substituir arquivo de pacotes! **\n");
+                }
+            } else {
+                remove("auxiliar.bin");
+                printf("\n** ERRO CRITICO: Falha na gravacao transacional! **\n");
+            }
         }
     }
     system("pause");
@@ -1741,6 +2089,7 @@ void excluirPlano() {
     if (pos == -1) return;
 
     arqPlano = fopen("plano.bin", "rb");
+    if (arqPlano == NULL) return;
     fseek(arqPlano, pos * sizeof(Plano), 0);
     fread(&Pl, sizeof(Plano), 1, arqPlano);
     fclose(arqPlano);
@@ -1759,12 +2108,14 @@ void excluirPlano() {
 
     if (alunosAtivosVinculados) {
         printf("\n**************************************************");
-        printf("\n**          AVISO DE VINCULOS DO PLANO          **");
+        printf("\n**          BLOQUEIO DE SEGURANCA               **");
         printf("\n**************************************************");
         printf("\n- O plano esta vinculado a ALUNOS COM MATRICULA ATIVA!");
+        printf("\n- Impossivel excluir planos com matriculas ativas.");
+        printf("\n- Realize o cancelamento ou alteracao do aluno primeiro.");
         printf("\n--------------------------------------------------");
-        printf("\nDeseja realmente excluir mesmo assim? (S/N): ");
-        if (lerOpcaoSN() == 'N') return;
+        system("pause");
+        return;
     }
 
     system("cls");
@@ -1776,31 +2127,40 @@ void excluirPlano() {
 
     if (lerOpcaoSN() == 'S') {
         int idExcluir = Pl.id;
+
         arqPlano = fopen("plano.bin", "rb");
         arqTemp = fopen("auxiliar.bin", "wb");
 
         if (arqPlano != NULL && arqTemp != NULL) {
+            int sucesso = 1;
             while (fread(&Pl, sizeof(Plano), 1, arqPlano) == 1) {
                 if (Pl.id != idExcluir) {
-                    fwrite(&Pl, sizeof(Plano), 1, arqTemp);
+                    if (fwrite(&Pl, sizeof(Plano), 1, arqTemp) != 1) sucesso = 0;
                 }
             }
             fclose(arqTemp);
             fclose(arqPlano);
-            remove("plano.bin");
-            rename("auxiliar.bin", "plano.bin");
-            ordenarPlano();
-            printf("\n** O plano foi excluido com sucesso! **\n");
+
+            if (sucesso) {
+                remove("plano.bin");
+                if (rename("auxiliar.bin", "plano.bin") == 0) {
+                    ordenarPlano();
+                    printf("\n** O plano foi excluido com sucesso! **\n");
+                } else {
+                    printf("\n** ERRO CRITICO: Falha ao substituir arquivo de planos! **\n");
+                }
+            } else {
+                remove("auxiliar.bin");
+                printf("\n** ERRO CRITICO: Falha na gravacao transacional! **\n");
+            }
         }
     }
     system("pause");
 }
 
-void excluirPessoa() 
-{
+void excluirPessoa() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- EXCLUIR PESSOA ---");
         printf("\n1. Aluno");
@@ -1819,21 +2179,14 @@ void excluirPessoa()
 }
 
 //<=====REGRAS FINANCEIRAS E MOVIMENTAÇÕES=====>
-float calcularDescontoPlano(float valorBase, char tipoPlano) {
-    float desconto = 0.0;
-    if (tipoPlano == 'T') desconto = valorBase * 0.05f;
-    else if (tipoPlano == 'S') desconto = valorBase * 0.10f;
-    else if (tipoPlano == 'A') desconto = valorBase * 0.15f;
-    return valorBase - desconto;
-}
-
-int existeBoleto(char cpf[], int mes) {
+int existeBoleto(char cpf[], int mes, int ano) {
     Recebimento Rec;
     int val = 0, achou = 0;
     FILE *arqRecebimento = fopen("recebimento.bin", "rb");
     if (arqRecebimento == NULL) return 0;
+    
     while (val == 0 && fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
-        if (strcmp(Rec.cpf_aluno, cpf) == 0 && Rec.mes_referencia == mes) {
+        if (strcmp(Rec.cpf_aluno, cpf) == 0 && Rec.mes_referencia == mes && Rec.ano_referencia == ano && Rec.status_pago != 2) {
             achou = 1;
             val = 1;
         }
@@ -1842,39 +2195,70 @@ int existeBoleto(char cpf[], int mes) {
     return achou;
 }
 
-void gerarProximoBoleto(char cpf[], int proximoMes, float valor) {
+void gerarProximoBoleto(char cpf[], int mes, int ano, float valor) {
     Recebimento Rec;
     FILE *arqRecebimento;
-    int proximo_id = 1;
+    int proximo_id;
 
-    if (existeBoleto(cpf, proximoMes)) {
-        printf("\n[AVISO] Ja existe boleto para o mes %d. Nao foi gerado duplicado.\n", proximoMes);
-        return;
+   
+    int idxAl = buscaAluno(cpf);
+    if (idxAl != -1) {
+        FILE *fAl = fopen("aluno.bin", "rb");
+        if (fAl != NULL) {
+            Aluno tempAl;
+            fseek(fAl, idxAl * sizeof(Aluno), SEEK_SET);
+            fread(&tempAl, sizeof(Aluno), 1, fAl);
+            fclose(fAl);
+            
+            if (tempAl.status_matricula == 0) return; 
+
+           
+            int idxPl = buscaPlano(tempAl.id_plano);
+            if (idxPl != -1) {
+                FILE *fPl = fopen("plano.bin", "rb");
+                if (fPl != NULL) {
+                    Plano tempPl;
+                    fseek(fPl, idxPl * sizeof(Plano), SEEK_SET);
+                    fread(&tempPl, sizeof(Plano), 1, fPl);
+                    fclose(fPl);
+
+                    int incrementoMeses = 1; 
+                    if (tempPl.tipo == 'T') incrementoMeses = 3;
+                    else if (tempPl.tipo == 'S') incrementoMeses = 6;
+                    else if (tempPl.tipo == 'A') incrementoMeses = 12;
+
+                
+                    mes += incrementoMeses;
+                    while (mes > 12) {
+                        mes -= 12;
+                        ano++;
+                    }
+                }
+            }
+        }
     }
 
-    arqRecebimento = fopen("recebimento.bin", "rb");
-    if (arqRecebimento != NULL) {
-        fseek(arqRecebimento, 0, 2);
-        proximo_id = (ftell(arqRecebimento) / sizeof(Recebimento)) + 1;
-        fclose(arqRecebimento);
-    }
+    if (existeBoleto(cpf, mes, ano)) return;
 
+    proximo_id = proximoIdRecebimento();
     arqRecebimento = fopen("recebimento.bin", "ab");
     if (arqRecebimento != NULL) {
         Rec.id_recebimento = proximo_id;
         strcpy(Rec.cpf_aluno, cpf);
-        Rec.mes_referencia = proximoMes;
+        Rec.mes_referencia = mes;
+        Rec.ano_referencia = ano;
         Rec.valor_cobrado = valor;
-        Rec.status_pago = 0;
-        fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
+        Rec.status_pago = 0; // 
+        
+        if (fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento) != 1) {
+            printf("\n** AVISO: Falha ao gravar boleto gerado no disco! **\n");
+        }
         fclose(arqRecebimento);
-        printf("\n[BOLETO GERADO] Novo boleto para o mes %d no valor de R$ %.2f\n", proximoMes, valor);
     }
 }
 
 void efetuarMatricula() {
-    int idxAluno, idxPlano, idxPacote, mesInicio;
-    float valorFinal;
+    int idxAluno, idxPlano, idxPacote, mesInicio, anoInicio;
     Aluno Al;
     Plano Pl;
     Pacote Pc;
@@ -1887,6 +2271,7 @@ void efetuarMatricula() {
     if (idxAluno == -1) return;
 
     arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno == NULL) return;
     fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
     fread(&Al, sizeof(Aluno), 1, arqAluno);
     fclose(arqAluno);
@@ -1901,6 +2286,7 @@ void efetuarMatricula() {
     if (idxPlano == -1) return;
 
     arqPlano = fopen("plano.bin", "rb");
+    if (arqPlano == NULL) return;
     fseek(arqPlano, idxPlano * sizeof(Plano), 0);
     fread(&Pl, sizeof(Plano), 1, arqPlano);
     fclose(arqPlano);
@@ -1909,6 +2295,7 @@ void efetuarMatricula() {
     if (idxPacote == -1) return;
 
     arqPacote = fopen("pacote.bin", "rb");
+    if (arqPacote == NULL) return;
     fseek(arqPacote, idxPacote * sizeof(Pacote), 0);
     fread(&Pc, sizeof(Pacote), 1, arqPacote);
     fclose(arqPacote);
@@ -1919,28 +2306,59 @@ void efetuarMatricula() {
         if (mesInicio < 1 || mesInicio > 12) printf("** MES INVALIDO! Digite de 1 a 12: ");
     } while (mesInicio < 1 || mesInicio > 12);
 
-    valorFinal = calcularDescontoPlano(Pl.valor_base, Pl.tipo);
+    printf("Ano inicial da cobranca (ex: 2026): ");
+    anoInicio = lerInteiro();
+    while (anoInicio < 2024 || anoInicio > 2100) {
+        printf("** ANO INVALIDO! Digite um ano valido: ");
+        anoInicio = lerInteiro();
+    }
 
     Al.id_plano = Pl.id;
     Al.id_pacote = Pc.id;
     Al.status_matricula = 1;
 
     arqAluno = fopen("aluno.bin", "rb+");
-    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
-    fwrite(&Al, sizeof(Aluno), 1, arqAluno);
-    fclose(arqAluno);
+    if (arqAluno != NULL) {
+        fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+        if (fwrite(&Al, sizeof(Aluno), 1, arqAluno) != 1) {
+            printf("\n** ERRO CRITICO: Falha ao gravar matricula no disco! **\n");
+            fclose(arqAluno);
+            system("pause");
+            return;
+        }
+        fclose(arqAluno);
+    } else {
+        printf("\n** ERRO CRITICO: Impossivel abrir arquivo de alunos para gravacao! **\n");
+        system("pause");
+        return;
+    }
 
-    printf("\n[MATRICULA REGISTRADA]");
+    Recebimento Rec;
+    int proximo_id = proximoIdRecebimento();
+    FILE *arqRecebimento = fopen("recebimento.bin", "ab");
+    if (arqRecebimento != NULL) {
+        Rec.id_recebimento = proximo_id;
+        strcpy(Rec.cpf_aluno, Al.cpf);
+        Rec.mes_referencia = mesInicio;
+        Rec.ano_referencia = anoInicio;
+        Rec.valor_cobrado = Pl.valor_base;
+        Rec.status_pago = 0; // 0: Aberto
+        
+        if (fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento) != 1) {
+            printf("\n** AVISO: Falha ao gravar boleto inicial no disco! **\n");
+        }
+        fclose(arqRecebimento);
+    }
+
+    printf("\n[MATRICULA REGISTRADA COM SUCESSO]");
     printf("\nAluno: %s", Al.nome);
-    printf("\nPlano: %s | Valor Real Final: R$ %.2f\n", Pl.nome, valorFinal);
-
-    gerarProximoBoleto(Al.cpf, mesInicio, valorFinal);
+    printf("\nPlano: %s | Valor Integral: R$ %.2f\n", Pl.nome, Pl.valor_base);
     system("pause");
 }
 
 void efetuarCancelamento() {
     int idxAluno, idxPlano;
-    float valor, multa, reembolso;
+    float multa = 0.0, reembolso = 0.0;
     Aluno Al;
     Plano Pl;
     FILE *arqAluno, *arqPlano;
@@ -1952,6 +2370,7 @@ void efetuarCancelamento() {
     if (idxAluno == -1) return;
 
     arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno == NULL) return;
     fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
     fread(&Al, sizeof(Aluno), 1, arqAluno);
     fclose(arqAluno);
@@ -1964,22 +2383,40 @@ void efetuarCancelamento() {
 
     idxPlano = buscaPlano(Al.id_plano);
     if (idxPlano == -1) {
-        printf("\n** AVISO: Plano vinculado nao existe mais. Cancelamento sera aplicado sem calculo de multa. **\n");
+        printf("\n** AVISO: Plano vinculado nao existe mais. Cancelamento sem multa. **\n");
     } else {
         arqPlano = fopen("plano.bin", "rb");
-        fseek(arqPlano, idxPlano * sizeof(Plano), 0);
-        fread(&Pl, sizeof(Plano), 1, arqPlano);
-        fclose(arqPlano);
+        if (arqPlano != NULL) {
+            fseek(arqPlano, idxPlano * sizeof(Plano), 0);
+            fread(&Pl, sizeof(Plano), 1, arqPlano);
+            fclose(arqPlano);
 
-        valor = Pl.valor_base;
-        if (Pl.tipo != 'M') {
-            multa = valor * 0.30f;
-            reembolso = valor * 0.70f;
-            printf("\nMulta de Retencao (30%%): R$ %.2f", multa);
-            printf("\nValor Reembolsado ao Aluno (70%%): R$ %.2f\n", reembolso);
-        } else {
-            printf("\nPlano Mensal cancelado sem taxas adicionais.\n");
+            if (Pl.tipo != 'M') {
+                multa = Pl.valor_base * 0.30f;
+                reembolso = Pl.valor_base * 0.70f;
+                printf("\nMulta de Retencao (30%%): R$ %.2f", multa);
+                printf("\nValor Reembolsado ao Aluno (70%%): R$ %.2f\n", reembolso);
+            } else {
+                printf("\nPlano Mensal cancelado sem taxas adicionais.\n");
+            }
         }
+    }
+
+    FILE *arqRec = fopen("recebimento.bin", "rb+");
+    if (arqRec != NULL) {
+        Recebimento Rec;
+        long recPos = 0;
+        while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+            if (strcmp(Rec.cpf_aluno, Al.cpf) == 0 && Rec.status_pago == 0) {
+                Rec.status_pago = 2;
+                fseek(arqRec, recPos, SEEK_SET);
+                fwrite(&Rec, sizeof(Recebimento), 1, arqRec);
+                fflush(arqRec);
+                fseek(arqRec, recPos + sizeof(Recebimento), SEEK_SET);
+            }
+            recPos = ftell(arqRec);
+        }
+        fclose(arqRec);
     }
 
     Al.status_matricula = 0;
@@ -1987,16 +2424,20 @@ void efetuarCancelamento() {
     Al.id_pacote = -1;
 
     arqAluno = fopen("aluno.bin", "rb+");
-    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
-    fwrite(&Al, sizeof(Aluno), 1, arqAluno);
-    fclose(arqAluno);
+    if (arqAluno != NULL) {
+        fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+        if (fwrite(&Al, sizeof(Aluno), 1, arqAluno) != 1) {
+            printf("\n** ERRO CRITICO: Falha ao salvar cancelamento no disco! **\n");
+        }
+        fclose(arqAluno);
+    }
 
-    printf("\n** Matricula cancelada com sucesso! **\n");
+    printf("\n** Matricula cancelada com sucesso e boletos pendentes invalidados! **\n");
     system("pause");
 }
 
 void efetuarRecebimento() {
-    int idxAluno, mes, achou = 0, val = 0;
+    int idxAluno, mes, ano, achou = 0, val = 0;
     Aluno Al;
     Recebimento Rec;
     FILE *arqAluno, *arqRecebimento;
@@ -2008,9 +2449,16 @@ void efetuarRecebimento() {
     if (idxAluno == -1) return;
 
     arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno == NULL) return;
     fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
     fread(&Al, sizeof(Aluno), 1, arqAluno);
     fclose(arqAluno);
+
+    if (Al.status_matricula == 0) {
+        printf("\n** ERRO: Este aluno nao possui matricula ativa no sistema! **\n");
+        system("pause");
+        return;
+    }
 
     printf("Mes do Boleto (1-12): ");
     do {
@@ -2018,25 +2466,24 @@ void efetuarRecebimento() {
         if (mes < 1 || mes > 12) printf("** MES INVALIDO! Digite de 1 a 12: ");
     } while (mes < 1 || mes > 12);
 
+    printf("Ano do Boleto (ex: 2026): ");
+    ano = lerInteiro();
+
     arqRecebimento = fopen("recebimento.bin", "rb+");
     if (arqRecebimento != NULL) {
         long pos = 0;
         while (val == 0 && fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
-            if (strcmp(Rec.cpf_aluno, Al.cpf) == 0 && Rec.mes_referencia == mes) {
+            if (strcmp(Rec.cpf_aluno, Al.cpf) == 0 && Rec.mes_referencia == mes && Rec.ano_referencia == ano && Rec.status_pago == 0) {
                 achou = 1;
                 val = 1;
-                if (Rec.status_pago == 1) {
-                    printf("\n** Boleto ja pago anteriormente! **\n");
-                } else {
-                    Rec.status_pago = 1;
-                    fseek(arqRecebimento, pos, 0);
-                    fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
-                    printf("\n** Boleto #%d Pago com sucesso! Valor: R$ %.2f **\n", Rec.id_recebimento, Rec.valor_cobrado);
-                    if (mes < 12) {
-                        gerarProximoBoleto(Al.cpf, mes + 1, Rec.valor_cobrado);
-                    } else {
-                        printf("\n[INFO] Mes 12 pago. Proximo boleto devera ser gerado no proximo ano.\n");
-                    }
+                
+                Rec.status_pago = 1; // Pago
+                fseek(arqRecebimento, pos, 0);
+                fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
+                printf("\n** Boleto #%d Pago com sucesso! Valor: R$ %.2f **\n", Rec.id_recebimento, Rec.valor_cobrado);
+                
+                if (Al.status_matricula == 1) {
+                    gerarProximoBoleto(Al.cpf, mes, ano, Rec.valor_cobrado);
                 }
             } else {
                 pos = ftell(arqRecebimento);
@@ -2045,16 +2492,68 @@ void efetuarRecebimento() {
         fclose(arqRecebimento);
     }
 
-    if (!achou) printf("\n** Nenhum boleto pendente localizado para este CPF e mes. **\n");
+    if (!achou) printf("\n** Nenhum boleto pendente (em aberto) localizado para este CPF, mes e ano. **\n");
+    system("pause");
+}
+
+void historicoPagamentosAluno() {
+    int idxAluno;
+    Aluno Al;
+    Recebimento Rec;
+    FILE *arqAluno, *arqRecebimento;
+    int contador = 0;
+
+    system("cls");
+    printf("\n<==== HISTORICO DE PAGAMENTOS POR ALUNO ====>\n");
+
+    idxAluno = selecionarAluno();
+    if (idxAluno == -1) return;
+
+    arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno == NULL) return;
+    fseek(arqAluno, idxAluno * sizeof(Aluno), 0);
+    fread(&Al, sizeof(Aluno), 1, arqAluno);
+    fclose(arqAluno);
+
+    system("cls");
+    printf("\n--------------------------------------------------");
+    printf("\n Historico de Boletos - Aluno: %s", Al.nome);
+    printf("\n CPF: %s", Al.cpf);
+    printf("\n--------------------------------------------------\n");
+
+    arqRecebimento = fopen("recebimento.bin", "rb");
+    if (arqRecebimento == NULL) {
+        printf("\n** Nenhum registro financeiro encontrado no sistema. **\n");
+        system("pause");
+        return;
+    }
+
+    while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
+        if (strcmp(Rec.cpf_aluno, Al.cpf) == 0) {
+            contador++;
+            char *statusStr;
+            if (Rec.status_pago == 0) statusStr = "EM ABERTO";
+            else if (Rec.status_pago == 1) statusStr = "PAGO";
+            else statusStr = "CANCELADO";
+
+            printf("Boleto #%d | Mes/Ano: %02d/%d | Valor: R$ %.2f | Status: %s\n",
+                   Rec.id_recebimento, Rec.mes_referencia, Rec.ano_referencia, Rec.valor_cobrado, statusStr);
+        }
+    }
+    fclose(arqRecebimento);
+
+    if (contador == 0) {
+        printf("\n** Este aluno nao possui nenhum boleto gerado ou registrado. **\n");
+    }
+
+    printf("\n--------------------------------------------------\n");
     system("pause");
 }
 
 //<=====SUB-MENUS=====>
-void gerenciarPessoas() 
-{
+void gerenciarPessoas() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- GERENCIAR PESSOAS ---");
         printf("\n1. Cadastrar Aluno");
@@ -2067,33 +2566,20 @@ void gerenciarPessoas()
         op = lerInteiro();
 
         switch (op) {
-            case 1: 
-                while (cadastrarAluno() == 'S'); 
-                break;
-            case 2: 
-                while (cadastrarInstrutor() == 'S'); 
-                break;
-            case 3: 
-                consultarPessoas(); 
-                break;
-            case 4: 
-                alterarPessoa(); 
-                break;
-            case 5: 
-                excluirPessoa(); 
-                break;
-            case 0: 
-                break;
+            case 1: while (cadastrarAluno() == 'S'); break;
+            case 2: while (cadastrarInstrutor() == 'S'); break;
+            case 3: consultarPessoas(); break;
+            case 4: alterarPessoa(); break;
+            case 5: excluirPessoa(); break;
+            case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (op != 0);
 }
 
-void gerenciarAtividades() 
-{
+void gerenciarAtividades() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- GERENCIAR ATIVIDADES ---");
         printf("\n1. Cadastrar Atividade");
@@ -2105,30 +2591,19 @@ void gerenciarAtividades()
         op = lerInteiro();
 
         switch (op) {
-            case 1: 
-                while (cadastrarAtividade() == 'S'); 
-                break;
-            case 2: 
-                consultarAtividade(); 
-                break;
-            case 3: 
-                alterarAtividade(); 
-                break;
-            case 4: 
-                excluirAtividade(); 
-                break;
-            case 0: 
-                break;
+            case 1: while (cadastrarAtividade() == 'S'); break;
+            case 2: consultarAtividade(); break;
+            case 3: alterarAtividade(); break;
+            case 4: excluirAtividade(); break;
+            case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (op != 0);
 }
 
-void gerenciarPacotes() 
-{
+void gerenciarPacotes() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- GERENCIAR PACOTES ---");
         printf("\n1. Cadastrar Pacote");
@@ -2140,30 +2615,19 @@ void gerenciarPacotes()
         op = lerInteiro();
 
         switch (op) {
-            case 1: 
-                while (cadastrarPacote() == 'S'); 
-                break;
-            case 2: 
-                consultarPacote(); 
-                break;
-            case 3: 
-                alterarPacote(); 
-                break;
-            case 4: 
-                excluirPacote(); 
-                break;
-            case 0: 
-                break;
+            case 1: while (cadastrarPacote() == 'S'); break;
+            case 2: consultarPacote(); break;
+            case 3: alterarPacote(); break;
+            case 4: excluirPacote(); break;
+            case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (op != 0);
 }
 
-void gerenciarPlanos() 
-{
+void gerenciarPlanos() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- GERENCIAR PLANOS ---");
         printf("\n1. Cadastrar Plano");
@@ -2175,35 +2639,25 @@ void gerenciarPlanos()
         op = lerInteiro();
 
         switch (op) {
-            case 1: 
-                while (cadastrarPlano() == 'S'); 
-                break;
-            case 2: 
-                consultarPlano(); 
-                break;
-            case 3: 
-                alterarPlano(); 
-                break;
-            case 4: 
-                excluirPlano(); 
-                break;
-            case 0: 
-                break;
+            case 1: while (cadastrarPlano() == 'S'); break;
+            case 2: consultarPlano(); break;
+            case 3: alterarPlano(); break;
+            case 4: excluirPlano(); break;
+            case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (op != 0);
 }
 
-void gerenciarMovimentacoes() 
-{
+void gerenciarMovimentacoes() {
     int op;
-    do 
-	{
+    do {
         system("cls");
         printf("\n--- MOVIMENTACOES E FINANCEIRO ---");
         printf("\n1. Efetuar Matricula");
         printf("\n2. Efetuar Cancelamento");
         printf("\n3. Registrar Recebimento");
+        printf("\n4. Historico de Pagamentos por Aluno");
         printf("\n0. Voltar ao Menu Principal");
         printf("\nOpcao: ");
         op = lerInteiro();
@@ -2212,56 +2666,29 @@ void gerenciarMovimentacoes()
             case 1: efetuarMatricula(); break;
             case 2: efetuarCancelamento(); break;
             case 3: efetuarRecebimento(); break;
+            case 4: historicoPagamentosAluno(); break;
             case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (op != 0);
 }
 
-int main()
-{
-	FILE *arqAluno, *arqInstrutor, *arqAtividade, *arqPacote, *arqPlano, *arqRecebimento;
-	
-	Aluno Al;
-    Instrutor Inst;
-    Atividade Atv;
-    Pacote Pc;
-    Plano Pl;
-    Recebimento Rec;
-    
+int main() {
     int opcaoPrincipal;
 	
-	do
-	{
-		menuPrincipal();
-		opcaoPrincipal = lerInteiro();
+    do {
+        menuPrincipal();
+        opcaoPrincipal = lerInteiro();
 		
-		switch (opcaoPrincipal) 
-		{
-            case 1:
-                gerenciarPessoas();
-                break;
-            case 2:
-                gerenciarAtividades();
-                break;
-            case 3:
-                gerenciarPacotes();
-                break;
-            case 4:
-                gerenciarPlanos();
-                break;
-            case 5:
-                gerenciarMovimentacoes();
-                break;
-            case 0:
-                printf("\nEncerrando o sistema...\n");
-                break;
-            default:
-                printf("\nOpcao invalida!\n");
-                system("pause");
+        switch (opcaoPrincipal) {
+            case 1: gerenciarPessoas(); break;
+            case 2: gerenciarAtividades(); break;
+            case 3: gerenciarPacotes(); break;
+            case 4: gerenciarPlanos(); break;
+            case 5: gerenciarMovimentacoes(); break;
+            case 0: printf("\nEncerrando o sistema...\n"); break;
+            default: printf("\nOpcao invalida!\n"); system("pause");
         }
-        
     } while (opcaoPrincipal != 0);
-
     return 0;
 }
