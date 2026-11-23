@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <ctype.h>
 #include <windows.h>
 #include <conio.h>
@@ -22,6 +23,8 @@ typedef struct {
     char cpf[15];
     char nome[100];
     char telefone[20];
+    char categoria_peso[30];
+    char nivel_experiencia[30];
     int id_pacote;
     int id_plano;
     int status_matricula;
@@ -36,6 +39,7 @@ typedef struct {
 typedef struct {
     int id;
     char nome[50];
+    char foco_treino[40];
     char cpf_instrutor[15];
 } Atividade;
 
@@ -50,7 +54,7 @@ typedef struct {
 typedef struct {
     int id;
     char nome[50];
-    char tipo; 
+    char tipo;
     float valor_base;
 } Plano;
 
@@ -60,7 +64,7 @@ typedef struct {
     int mes_referencia;
     int ano_referencia;
     float valor_cobrado;
-    int status_pago; 
+    int status_pago;
 } Recebimento;
 
 //<=============PROTÓTIPOS DE FUNÇÕES=============>
@@ -70,6 +74,7 @@ void lerCPF(char cpf[]);
 void lerTelefone(char telefone[]);
 void lerTextoApenasLetras(char mensagem[], char texto[], int tamanhoMax);
 char lerOpcaoSN();
+float calcularDescontoPlano(char tipo, float valorBase);
 
 int buscaAluno(char cpf[]);
 int buscaInstrutor(char cpf[]);
@@ -96,9 +101,14 @@ int selecionarPlano();
 
 void gerarProximoBoleto(char cpf[], int mes, int ano, float valor);
 int existeBoleto(char cpf[], int mes, int ano);
-void historicoPagamentosAluno();
+void popularDadosIniciais();
 
-//<=============VALIDAÇÃO E LEITURA=============>
+void historicoPagamentosAluno();
+void relatorioPagamentosPeriodo();
+void relatorioAlunosPorStatus();
+void relatorioInadimplentesMesAno();
+
+//<=============FUNÇÕES DE VALIDAÇÃO E LEITURA=============>
 int lerInteiro() {
     int valor;
     while (scanf("%d", &valor) != 1) {
@@ -121,6 +131,10 @@ float lerFloat() {
 
 void lerCPF(char cpf[]) {
     int valido, i, tamanho;
+    int vetCPF[11], mult, n_mult, soma, resto, sub, d1, d2, n_mult2, soma2;
+    char s[2];
+    int todosIguais;
+
     do {
         valido = 1;
         fflush(stdin);
@@ -140,8 +154,59 @@ void lerCPF(char cpf[]) {
             }
         }
 
+        if (valido == 1) {
+            todosIguais = 1;
+            for (i = 0; i < 11; i++) {
+                s[1] = '\0';
+                s[0] = cpf[i];
+                vetCPF[i] = atoi(s);
+                if (i > 0 && vetCPF[i] != vetCPF[0]) {
+                    todosIguais = 0;
+                }
+            }
+
+            if (todosIguais == 1) {
+                valido = 0;
+            } else {
+                n_mult = 10;
+                soma = 0;
+                for (i = 0; i < 9; i++) {
+                    mult = vetCPF[i] * n_mult;
+                    n_mult--;
+                    soma = soma + mult;
+                }
+                resto = soma % 11;
+                sub = 11 - resto;
+                if (sub == 10 || sub == 11) {
+                    d1 = 0;
+                } else {
+                    d1 = sub;
+                }
+
+                n_mult2 = 11;
+                soma2 = 0;
+                for (i = 0; i < 9; i++) {
+                    mult = vetCPF[i] * n_mult2;
+                    n_mult2--;
+                    soma2 = soma2 + mult;
+                }
+                soma2 = soma2 + d1 * 2;
+                resto = soma2 % 11;
+                sub = 11 - resto;
+                if (sub == 10 || sub == 11) {
+                    d2 = 0;
+                } else {
+                    d2 = sub;
+                }
+
+                if (vetCPF[9] != d1 || vetCPF[10] != d2) {
+                    valido = 0;
+                }
+            }
+        }
+
         if (!valido) {
-            printf("** CPF INVALIDO! Digite exatamente 11 numeros: ");
+            printf("** CPF INVALIDO! Digite 11 numeros de um CPF valido: ");
         }
     } while (!valido);
 }
@@ -188,7 +253,8 @@ void lerTextoApenasLetras(char mensagem[], char texto[], int tamanhoMax) {
         } else {
             i = 0;
             while (i < tamanho && valido == 1) {
-                if (!isalpha(texto[i]) && texto[i] != ' ' && texto[i] != 'ç' && texto[i] != 'Ç' && 
+                if (!isalpha(texto[i]) && texto[i] != ' ' && texto[i] != '/' &&
+                    texto[i] != 'ç' && texto[i] != 'Ç' &&
                     texto[i] != 'á' && texto[i] != 'é' && texto[i] != 'í' && texto[i] != 'ó' && texto[i] != 'ú' &&
                     texto[i] != 'à' && texto[i] != 'è' && texto[i] != 'ì' && texto[i] != 'ò' && texto[i] != 'ù' &&
                     texto[i] != 'ã' && texto[i] != 'õ' && texto[i] != 'â' && texto[i] != 'ê' && texto[i] != 'ô') {
@@ -219,11 +285,101 @@ char lerOpcaoSN() {
     return op;
 }
 
+float calcularDescontoPlano(char tipo, float valorBase) {
+    if (tipo == 'T') {
+        return valorBase * 0.95f;
+    } else if (tipo == 'S') {
+        return valorBase * 0.90f;
+    } else if (tipo == 'A') {
+        return valorBase * 0.85f;
+    }
+    return valorBase;
+}
+
+//<=============MASSA DE DADOS INICIAL=============>
+void popularDadosIniciais() {
+    FILE *arqTeste = fopen("aluno.bin", "rb");
+    if (arqTeste != NULL) {
+        fclose(arqTeste);
+        return;
+    }
+
+    FILE *arqInstrutor = fopen("instrutor.bin", "wb");
+    if (arqInstrutor != NULL) {
+        Instrutor i1 = {"52998224725", "Carlos Silva", "Boxe Olimpico e Tecnica"};
+        Instrutor i2 = {"15350946056", "Roberto Mendes", "Sparring e Preparacao de Luta"};
+        fwrite(&i1, sizeof(Instrutor), 1, arqInstrutor);
+        fwrite(&i2, sizeof(Instrutor), 1, arqInstrutor);
+        fclose(arqInstrutor);
+    }
+
+    FILE *arqAtividade = fopen("atividade.bin", "wb");
+    if (arqAtividade != NULL) {
+        Atividade a1 = {1, "Boxe Tecnico", "Tecnica e Movimentacao", "52998224725"};
+        Atividade a2 = {2, "Sparring Controlado", "Sparring / Combate", "15350946056"};
+        Atividade a3 = {3, "Preparacao Fisica", "Condicionamento/Saco", "52998224725"};
+        fwrite(&a1, sizeof(Atividade), 1, arqAtividade);
+        fwrite(&a2, sizeof(Atividade), 1, arqAtividade);
+        fwrite(&a3, sizeof(Atividade), 1, arqAtividade);
+        fclose(arqAtividade);
+    }
+
+    FILE *arqPacote = fopen("pacote.bin", "wb");
+    if (arqPacote != NULL) {
+        Pacote p1 = {1, "Boxe 3x Semana", {1, 3}, 2, 12};
+        Pacote p2 = {2, "Full Boxer", {1, 2, 3}, 3, 24};
+        fwrite(&p1, sizeof(Pacote), 1, arqPacote);
+        fwrite(&p2, sizeof(Pacote), 1, arqPacote);
+        fclose(arqPacote);
+    }
+
+    FILE *arqPlano = fopen("plano.bin", "wb");
+    if (arqPlano != NULL) {
+        Plano pl1 = {1, "Plano Mensal", 'M', 150.00f};
+        Plano pl2 = {2, "Plano Trimestral", 'T', 150.00f};
+        Plano pl3 = {3, "Plano Semestral", 'S', 150.00f};
+        Plano pl4 = {4, "Plano Anual", 'A', 150.00f};
+        fwrite(&pl1, sizeof(Plano), 1, arqPlano);
+        fwrite(&pl2, sizeof(Plano), 1, arqPlano);
+        fwrite(&pl3, sizeof(Plano), 1, arqPlano);
+        fwrite(&pl4, sizeof(Plano), 1, arqPlano);
+        fclose(arqPlano);
+    }
+
+    FILE *arqAluno = fopen("aluno.bin", "wb");
+    if (arqAluno != NULL) {
+        Aluno al1 = {"71428793860", "Lucas Oliveira", "18997711223", "Peso Medio", "Amador", 2, 3, 1};
+        Aluno al2 = {"39053344705", "Mariana Costa", "18996655443", "Peso Leve", "Iniciante", 1, 1, 1};
+        Aluno al3 = {"85620714004", "Rafael Santos", "18991122334", "Peso Pesado", "Competidor", -1, -1, 0};
+        fwrite(&al1, sizeof(Aluno), 1, arqAluno);
+        fwrite(&al2, sizeof(Aluno), 1, arqAluno);
+        fwrite(&al3, sizeof(Aluno), 1, arqAluno);
+        fclose(arqAluno);
+    }
+
+    FILE *arqRecebimento = fopen("recebimento.bin", "wb");
+    if (arqRecebimento != NULL) {
+        Recebimento r1 = {1, "71428793860", 11, 2026, 135.00f, 1};
+        Recebimento r2 = {2, "71428793860", 5, 2027, 135.00f, 0};
+        Recebimento r3 = {3, "39053344705", 11, 2026, 150.00f, 0};
+        fwrite(&r1, sizeof(Recebimento), 1, arqRecebimento);
+        fwrite(&r2, sizeof(Recebimento), 1, arqRecebimento);
+        fwrite(&r3, sizeof(Recebimento), 1, arqRecebimento);
+        fclose(arqRecebimento);
+    }
+
+    ordenarInstrutor();
+    ordenarAtividade();
+    ordenarPacote();
+    ordenarPlano();
+    ordenarAluno();
+}
+
 //<=============BUSCAS=============>
 int buscaAluno(char cpf[]) {
     Aluno Al;
     FILE *arqAluno = fopen("aluno.bin", "rb");
-    if (arqAluno == NULL) return -1; 
+    if (arqAluno == NULL) return -1;
 
     int achei = -1;
     int pos = 0;
@@ -231,7 +387,7 @@ int buscaAluno(char cpf[]) {
     
     while (val == 0 && fread(&Al, sizeof(Aluno), 1, arqAluno) == 1) {
         if (strcmp(cpf, Al.cpf) == 0) {
-            achei = pos; 
+            achei = pos;
             val = 1;
         } else {
             pos++;
@@ -253,7 +409,7 @@ int buscaInstrutor(char cpf[]) {
     
     while (val == 0 && fread(&Inst, sizeof(Instrutor), 1, arqInstrutor) == 1) {
         if (strcmp(cpf, Inst.cpf) == 0) {
-            achei = pos; 
+            achei = pos;
             val = 1;
         } else {
             pos++;
@@ -275,7 +431,7 @@ int buscaAtividade(int id) {
     
     while (val == 0 && fread(&Atv, sizeof(Atividade), 1, arqAtividade) == 1) {
         if (Atv.id == id) {
-            achei = pos; 
+            achei = pos;
             val = 1;
         } else {
             pos++;
@@ -297,7 +453,7 @@ int buscaPacote(int id) {
     
     while (val == 0 && fread(&Pc, sizeof(Pacote), 1, arqPacote) == 1) {
         if (Pc.id == id) {
-            achei = pos; 
+            achei = pos;
             val = 1;
         } else {
             pos++;
@@ -319,7 +475,7 @@ int buscaPlano(int id) {
     
     while (val == 0 && fread(&Pl, sizeof(Plano), 1, arqPlano) == 1) {
         if (Pl.id == id) {
-            achei = pos; 
+            achei = pos;
             val = 1;
         } else {
             pos++;
@@ -330,56 +486,56 @@ int buscaPlano(int id) {
     return achei;
 }
 
-//<=============GERADORES DE ID=============>
+//<=============GERADORES DE ID SEGUROS=============>
 int proximoIdAtividade() {
     Atividade Atv;
-    FILE *arq = fopen("atividade.bin", "rb");
-    if (arq == NULL) return 1;
+    FILE *arqAtividade = fopen("atividade.bin", "rb");
+    if (arqAtividade == NULL) return 1;
     int maior = 0;
-    while (fread(&Atv, sizeof(Atividade), 1, arq) == 1) {
+    while (fread(&Atv, sizeof(Atividade), 1, arqAtividade) == 1) {
         if (Atv.id > maior) maior = Atv.id;
     }
-    fclose(arq);
+    fclose(arqAtividade);
     return maior + 1;
 }
 
 int proximoIdPacote() {
     Pacote Pc;
-    FILE *arq = fopen("pacote.bin", "rb");
-    if (arq == NULL) return 1;
+    FILE *arqPacote = fopen("pacote.bin", "rb");
+    if (arqPacote == NULL) return 1;
     int maior = 0;
-    while (fread(&Pc, sizeof(Pacote), 1, arq) == 1) {
+    while (fread(&Pc, sizeof(Pacote), 1, arqPacote) == 1) {
         if (Pc.id > maior) maior = Pc.id;
     }
-    fclose(arq);
+    fclose(arqPacote);
     return maior + 1;
 }
 
 int proximoIdPlano() {
     Plano Pl;
-    FILE *arq = fopen("plano.bin", "rb");
-    if (arq == NULL) return 1;
+    FILE *arqPlano = fopen("plano.bin", "rb");
+    if (arqPlano == NULL) return 1;
     int maior = 0;
-    while (fread(&Pl, sizeof(Plano), 1, arq) == 1) {
+    while (fread(&Pl, sizeof(Plano), 1, arqPlano) == 1) {
         if (Pl.id > maior) maior = Pl.id;
     }
-    fclose(arq);
+    fclose(arqPlano);
     return maior + 1;
 }
 
 int proximoIdRecebimento() {
     Recebimento Rec;
-    FILE *arq = fopen("recebimento.bin", "rb");
-    if (arq == NULL) return 1;
+    FILE *arqRecebimento = fopen("recebimento.bin", "rb");
+    if (arqRecebimento == NULL) return 1;
     int maior = 0;
-    while (fread(&Rec, sizeof(Recebimento), 1, arq) == 1) {
+    while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
         if (Rec.id_recebimento > maior) maior = Rec.id_recebimento;
     }
-    fclose(arq);
+    fclose(arqRecebimento);
     return maior + 1;
 }
 
-//<=============ORDENAÇÃO=============>
+//<=============ORDENAÇÃO SEGURA=============>
 void ordenarAluno() {
     FILE *arqAluno = fopen("aluno.bin", "rb+");
     Aluno Al, Ali;
@@ -514,13 +670,14 @@ void ordenarPlano() {
 int menuPrincipal() {
     system("cls");
     printf("\n==========================================");
-    printf("\n   SISTEMA DE GESTAO DA ACADEMIA");
+    printf("\n   HITBOXE - SISTEMA DE GESTAO");
     printf("\n==========================================");
     printf("\n1. Gerenciar Pessoas");
     printf("\n2. Gerenciar Atividades");
     printf("\n3. Gerenciar Pacotes");
     printf("\n4. Gerenciar Planos");
     printf("\n5. Movimentacoes e Financeiro");
+    printf("\n6. Relatorios");
     printf("\n0. Sair");
     printf("\nOpcao: ");
     return 0;
@@ -531,6 +688,7 @@ int selecionarAluno() {
     FILE *arqAluno = fopen("aluno.bin", "rb");
     Aluno Al;
     int opSub, i, idx = -1, qtde = 0, val = 0;
+    char *statusStr;
 
     if (arqAluno == NULL) {
         printf("\n** Nenhum aluno cadastrado! **\n");
@@ -550,7 +708,7 @@ int selecionarAluno() {
 
     while (val == 0) {
         system("cls");
-        printf("\n--- SELECIONAR ALUNO ---");
+        printf("\n--- HITBOXE | SELECIONAR ALUNO ---");
         printf("\n1. Digitar CPF diretamente");
         printf("\n2. Listar todos os alunos (escolher por numero)");
         printf("\n0. Cancelar");
@@ -577,9 +735,13 @@ int selecionarAluno() {
                 printf("\n<=== LISTA DE ALUNOS ===>\n");
                 for (i = 0; i < qtde; i++) {
                     fread(&Al, sizeof(Aluno), 1, arqAluno);
-                    printf("[%d] Nome: %s | CPF: %s | Status: %s\n",
-                           i, Al.nome, Al.cpf,
-                           Al.status_matricula ? "Ativa" : "Inativa");
+                    if (Al.status_matricula == 1) {
+                        statusStr = "Ativa";
+                    } else {
+                        statusStr = "Inativa";
+                    }
+                    printf("[%d] Nome: %s | CPF: %s | Peso: %s | Nivel: %s | Status: %s\n",
+                           i, Al.nome, Al.cpf, Al.categoria_peso, Al.nivel_experiencia, statusStr);
                 }
                 fclose(arqAluno);
                 printf("-------------------------\n");
@@ -625,7 +787,7 @@ int selecionarInstrutor() {
 
     while (val == 0) {
         system("cls");
-        printf("\n--- SELECIONAR INSTRUTOR ---");
+        printf("\n--- HITBOXE | SELECIONAR INSTRUTOR ---");
         printf("\n1. Digitar CPF diretamente");
         printf("\n2. Listar todos os instrutores (escolher por numero)");
         printf("\n0. Cancelar");
@@ -699,7 +861,7 @@ int selecionarAtividade() {
 
     while (val == 0) {
         system("cls");
-        printf("\n--- SELECIONAR ATIVIDADE ---");
+        printf("\n--- HITBOXE | SELECIONAR ATIVIDADE ---");
         printf("\n1. Digitar ID diretamente");
         printf("\n2. Listar todas as atividades (escolher por numero)");
         printf("\n0. Cancelar");
@@ -725,8 +887,8 @@ int selecionarAtividade() {
                 printf("\n<=== LISTA DE ATIVIDADES ===>\n");
                 for (i = 0; i < qtde; i++) {
                     fread(&Atv, sizeof(Atividade), 1, arqAtividade);
-                    printf("[%d] ID: %d | Nome: %s | CPF Instrutor: %s\n",
-                           i, Atv.id, Atv.nome, Atv.cpf_instrutor);
+                    printf("[%d] ID: %d | Nome: %s | Foco: %s | CPF Instrutor: %s\n",
+                           i, Atv.id, Atv.nome, Atv.foco_treino, Atv.cpf_instrutor);
                 }
                 fclose(arqAtividade);
                 printf("----------------------------\n");
@@ -772,7 +934,7 @@ int selecionarPacote() {
 
     while (val == 0) {
         system("cls");
-        printf("\n--- SELECIONAR PACOTE ---");
+        printf("\n--- HITBOXE | SELECIONAR PACOTE ---");
         printf("\n1. Digitar ID diretamente");
         printf("\n2. Listar todos os pacotes (escolher por numero)");
         printf("\n0. Cancelar");
@@ -845,7 +1007,7 @@ int selecionarPlano() {
 
     while (val == 0) {
         system("cls");
-        printf("\n--- SELECIONAR PLANO ---");
+        printf("\n--- HITBOXE | SELECIONAR PLANO ---");
         printf("\n1. Digitar ID diretamente");
         printf("\n2. Listar todos os planos (escolher por numero)");
         printf("\n0. Cancelar");
@@ -871,7 +1033,7 @@ int selecionarPlano() {
                 printf("\n<=== LISTA DE PLANOS ===>\n");
                 for (i = 0; i < qtde; i++) {
                     fread(&Pl, sizeof(Plano), 1, arqPlano);
-                    printf("[%d] ID: %d | Nome: %s | Tipo: %c | Valor: R$ %.2f\n",
+                    printf("[%d] ID: %d | Nome: %s | Tipo: %c | Valor Base: R$ %.2f\n",
                            i, Pl.id, Pl.nome, Pl.tipo, Pl.valor_base);
                 }
                 fclose(arqPlano);
@@ -895,7 +1057,7 @@ int selecionarPlano() {
     return idx;
 }
 
-//<=====CADASTROS=====>
+//<=====CADASTROS COM VERIFICAÇÃO DE ESCRITA=====>
 char cadastrarAluno() {
     Aluno Al;
     FILE *arqAluno = fopen("aluno.bin", "ab");
@@ -904,13 +1066,13 @@ char cadastrarAluno() {
 
     system("cls");
     if (arqAluno != NULL) {
-        printf("\n<==== CADASTRO DE ALUNO ====>\n");
+        printf("\n<==== HITBOXE | CADASTRO DE ALUNO ====>\n");
         printf("Insira o CPF (apenas numeros): ");
         lerCPF(temp_cpf);
 
         idxAl = buscaAluno(temp_cpf);
         idxInst = buscaInstrutor(temp_cpf);
-        if (idxAl != -1) { 
+        if (idxAl != -1) {
             printf("\n** ERRO: CPF ja cadastrado como Aluno! **\n");
         } else if (idxInst != -1) {
             printf("\n** ERRO: CPF ja cadastrado como Instrutor! **\n");
@@ -920,6 +1082,9 @@ char cadastrarAluno() {
 
             printf("Insira o telefone (apenas numeros): ");
             lerTelefone(Al.telefone);
+
+            lerTextoApenasLetras("Categoria de Peso (ex: Peso Leve, Medio, Pesado): ", Al.categoria_peso, sizeof(Al.categoria_peso));
+            lerTextoApenasLetras("Nivel de Experiencia (Iniciante, Amador, Competidor): ", Al.nivel_experiencia, sizeof(Al.nivel_experiencia));
 
             Al.id_pacote = -1;
             Al.id_plano = -1;
@@ -932,7 +1097,7 @@ char cadastrarAluno() {
             }
         }
 
-        fclose(arqAluno); 
+        fclose(arqAluno);
         ordenarAluno();
 
         printf("\nDeseja cadastrar outro aluno? (S/N): ");
@@ -945,19 +1110,19 @@ char cadastrarAluno() {
 
 char cadastrarInstrutor() {
     Instrutor Inst;
-    FILE *arqInstrutor = fopen("instrutor.bin", "ab"); 
+    FILE *arqInstrutor = fopen("instrutor.bin", "ab");
     char temp_cpf[20];
     int idxInst, idxAl;
 
     system("cls");
     if (arqInstrutor != NULL) {
-        printf("\n<==== CADASTRO DE INSTRUTOR ====>\n");
+        printf("\n<==== HITBOXE | CADASTRO DE INSTRUTOR ====>\n");
         printf("Insira o CPF (apenas numeros): ");
         lerCPF(temp_cpf);
 
         idxInst = buscaInstrutor(temp_cpf);
         idxAl = buscaAluno(temp_cpf);
-        if (idxInst != -1) { 
+        if (idxInst != -1) {
             printf("\n** ERRO: CPF ja cadastrado como Instrutor! **\n");
         } else if (idxAl != -1) {
             printf("\n** ERRO: CPF ja cadastrado como Aluno! **\n");
@@ -973,7 +1138,7 @@ char cadastrarInstrutor() {
             }
         }
 
-        fclose(arqInstrutor); 
+        fclose(arqInstrutor);
         ordenarInstrutor();
 
         printf("\nDeseja cadastrar outro instrutor? (S/N): ");
@@ -993,10 +1158,11 @@ char cadastrarAtividade() {
     arqAtividade = fopen("atividade.bin", "ab");
     system("cls");
     if (arqAtividade != NULL) {
-        printf("\n<==== CADASTRO DE ATIVIDADE ====>\n");
+        printf("\n<==== HITBOXE | CADASTRO DE ATIVIDADE ====>\n");
         Atv.id = proximo_id;
 
         lerTextoApenasLetras("Insira o nome da Atividade: ", Atv.nome, sizeof(Atv.nome));
+        lerTextoApenasLetras("Foco do Treino (Tecnica, Sparring, Condicionamento/Saco): ", Atv.foco_treino, sizeof(Atv.foco_treino));
 
         idxInst = selecionarInstrutor();
         if (idxInst == -1) {
@@ -1044,7 +1210,7 @@ char cadastrarPacote() {
     arqPacote = fopen("pacote.bin", "ab");
     system("cls");
     if (arqPacote != NULL) {
-        printf("\n<==== CADASTRO DE PACOTE ====>\n");
+        printf("\n<==== HITBOXE | CADASTRO DE PACOTE ====>\n");
         Pc.id = proximo_id;
         Pc.qtd_atividades = 0;
 
@@ -1118,7 +1284,7 @@ char cadastrarPlano() {
     arqPlano = fopen("plano.bin", "ab");
     system("cls");
     if (arqPlano != NULL) {
-        printf("\n<==== CADASTRO DE PLANO ====>\n");
+        printf("\n<==== HITBOXE | CADASTRO DE PLANO ====>\n");
         Pl.id = proximo_id;
 
         lerTextoApenasLetras("Insira o nome do Plano: ", Pl.nome, sizeof(Pl.nome));
@@ -1160,6 +1326,7 @@ char cadastrarPlano() {
 //<=====CONSULTAS=====>
 void consultarAluno() {
     Aluno Al;
+    char *statusStr;
     int pos = selecionarAluno();
     if (pos != -1) {
         FILE *arqAluno = fopen("aluno.bin", "rb");
@@ -1168,11 +1335,19 @@ void consultarAluno() {
             fread(&Al, sizeof(Aluno), 1, arqAluno);
             fclose(arqAluno);
 
+            if (Al.status_matricula == 1) {
+                statusStr = "Ativa";
+            } else {
+                statusStr = "Inativa";
+            }
+
             system("cls");
-            printf("\n** Aluno encontrado! **\n");
+            printf("\n** HITBOXE | Aluno encontrado! **\n");
             printf("Nome: %s\n", Al.nome);
             printf("CPF: %s\n", Al.cpf);
             printf("Telefone: %s\n", Al.telefone);
+            printf("Categoria de Peso: %s\n", Al.categoria_peso);
+            printf("Nivel de Experiencia: %s\n", Al.nivel_experiencia);
             
             if (Al.id_pacote == -1) {
                 printf("Pacote: Nao possui\n");
@@ -1186,7 +1361,7 @@ void consultarAluno() {
                 printf("ID Plano: %d\n", Al.id_plano);
             }
 
-            printf("Status Matricula: %s\n", Al.status_matricula ? "Ativa" : "Inativa");
+            printf("Status Matricula: %s\n", statusStr);
             system("pause");
         }
     }
@@ -1203,7 +1378,7 @@ void consultarInstrutor() {
             fclose(arqInstrutor);
 
             system("cls");
-            printf("\n** Instrutor encontrado! **\n");
+            printf("\n** HITBOXE | Instrutor encontrado! **\n");
             printf("Nome: %s\n", Inst.nome);
             printf("CPF: %s\n", Inst.cpf);
             printf("Especialidade: %s\n", Inst.especialidade);
@@ -1223,9 +1398,10 @@ void consultarAtividade() {
             fclose(arqAtividade);
 
             system("cls");
-            printf("\n** Atividade encontrada! **\n");
+            printf("\n** HITBOXE | Atividade encontrada! **\n");
             printf("ID: %d\n", Atv.id);
             printf("Nome: %s\n", Atv.nome);
+            printf("Foco do Treino: %s\n", Atv.foco_treino);
             printf("CPF Instrutor: %s\n", Atv.cpf_instrutor);
             system("pause");
         }
@@ -1235,7 +1411,7 @@ void consultarAtividade() {
 void consultarPacote() {
     Pacote Pc;
     int pos = selecionarPacote();
-    int j; 
+    int j;
     if (pos != -1) {
         FILE *arqPacote = fopen("pacote.bin", "rb");
         if (arqPacote != NULL) {
@@ -1244,7 +1420,7 @@ void consultarPacote() {
             fclose(arqPacote);
 
             system("cls");
-            printf("\n** Pacote encontrado! **\n");
+            printf("\n** HITBOXE | Pacote encontrado! **\n");
             printf("ID: %d\n", Pc.id);
             printf("Nome: %s\n", Pc.nome);
             printf("Quantidade de Aulas por Mes: %d\n", Pc.qtd_aulas_mes);
@@ -1273,11 +1449,12 @@ void consultarPlano() {
             fclose(arqPlano);
 
             system("cls");
-            printf("\n** Plano encontrado! **\n");
+            printf("\n** HITBOXE | Plano encontrado! **\n");
             printf("ID: %d\n", Pl.id);
             printf("Nome: %s\n", Pl.nome);
             printf("Tipo: %c\n", Pl.tipo);
             printf("Valor Base: R$ %.2f\n", Pl.valor_base);
+            printf("Valor com Desconto: R$ %.2f\n", calcularDescontoPlano(Pl.tipo, Pl.valor_base));
             system("pause");
         }
     }
@@ -1287,7 +1464,7 @@ void consultarPessoas() {
     int op;
     do {
         system("cls");
-        printf("\n--- CONSULTAR PESSOAS ---");
+        printf("\n--- HITBOXE | CONSULTAR PESSOAS ---");
         printf("\n1. Aluno");
         printf("\n2. Instrutor");
         printf("\n0. Voltar");
@@ -1303,7 +1480,7 @@ void consultarPessoas() {
     } while (op != 0);
 }
 
-//<=====ALTERAÇÕES=====>
+//<=====ALTERAÇÕES DE DADOS COM SEGURANÇA E VERIFICAÇÃO=====>
 void alterarAluno() {
     int pos = selecionarAluno();
     if (pos == -1) return;
@@ -1320,7 +1497,7 @@ void alterarAluno() {
     fread(&Al, sizeof(Aluno), 1, arqAluno);
 
     system("cls");
-    printf("\n--- ALTERAR DADOS DO ALUNO ---");
+    printf("\n--- HITBOXE | ALTERAR DADOS DO ALUNO ---");
     printf("\nCPF atual: %s", Al.cpf);
     printf("\nDeseja alterar o CPF? (S/N): ");
     if (lerOpcaoSN() == 'S') {
@@ -1351,21 +1528,20 @@ void alterarAluno() {
             strcpy(cpfAntigo, Al.cpf);
             strcpy(Al.cpf, novoCpf);
 
-            FILE *arqRec = fopen("recebimento.bin", "rb+");
-            if (arqRec != NULL) {
+            FILE *arqRecebimento = fopen("recebimento.bin", "rb+");
+            if (arqRecebimento != NULL) {
                 Recebimento Rec;
                 long recPos = 0;
-                while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+                while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
                     if (strcmp(Rec.cpf_aluno, cpfAntigo) == 0) {
                         strcpy(Rec.cpf_aluno, novoCpf);
-                        fseek(arqRec, recPos, SEEK_SET);
-                        fwrite(&Rec, sizeof(Recebimento), 1, arqRec);
-                        fflush(arqRec);
-                        fseek(arqRec, recPos + sizeof(Recebimento), SEEK_SET);
+                        fseek(arqRecebimento, recPos, SEEK_SET);
+                        fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
+                        fseek(arqRecebimento, recPos + sizeof(Recebimento), SEEK_SET);
                     }
-                    recPos = ftell(arqRec);
+                    recPos = ftell(arqRecebimento);
                 }
-                fclose(arqRec);
+                fclose(arqRecebimento);
             }
             printf("\n** CPF alterado com sucesso! **\n");
         }
@@ -1376,6 +1552,12 @@ void alterarAluno() {
 
     printf("Novo telefone (apenas numeros): ");
     lerTelefone(Al.telefone);
+
+    printf("Categoria de Peso atual: %s", Al.categoria_peso);
+    lerTextoApenasLetras("\nNova Categoria de Peso: ", Al.categoria_peso, sizeof(Al.categoria_peso));
+
+    printf("Nivel de Experiencia atual: %s", Al.nivel_experiencia);
+    lerTextoApenasLetras("\nNovo Nivel de Experiencia: ", Al.nivel_experiencia, sizeof(Al.nivel_experiencia));
 
     fseek(arqAluno, pos * sizeof(Aluno), SEEK_SET);
     if (fwrite(&Al, sizeof(Aluno), 1, arqAluno) != 1) {
@@ -1405,7 +1587,7 @@ void alterarInstrutor() {
     fread(&Inst, sizeof(Instrutor), 1, arqInstrutor);
 
     system("cls");
-    printf("\n--- ALTERAR DADOS DO INSTRUTOR ---");
+    printf("\n--- HITBOXE | ALTERAR DADOS DO INSTRUTOR ---");
     printf("\nCPF atual: %s", Inst.cpf);
     printf("\nDeseja alterar o CPF? (S/N): ");
     if (lerOpcaoSN() == 'S') {
@@ -1436,21 +1618,20 @@ void alterarInstrutor() {
             strcpy(cpfAntigo, Inst.cpf);
             strcpy(Inst.cpf, novoCpf);
 
-            FILE *arqAtv = fopen("atividade.bin", "rb+");
-            if (arqAtv != NULL) {
+            FILE *arqAtividade = fopen("atividade.bin", "rb+");
+            if (arqAtividade != NULL) {
                 Atividade Atv;
                 long atvPos = 0;
-                while (fread(&Atv, sizeof(Atividade), 1, arqAtv) == 1) {
+                while (fread(&Atv, sizeof(Atividade), 1, arqAtividade) == 1) {
                     if (strcmp(Atv.cpf_instrutor, cpfAntigo) == 0) {
                         strcpy(Atv.cpf_instrutor, novoCpf);
-                        fseek(arqAtv, atvPos, SEEK_SET);
-                        fwrite(&Atv, sizeof(Atividade), 1, arqAtv);
-                        fflush(arqAtv);
-                        fseek(arqAtv, atvPos + sizeof(Atividade), SEEK_SET);
+                        fseek(arqAtividade, atvPos, SEEK_SET);
+                        fwrite(&Atv, sizeof(Atividade), 1, arqAtividade);
+                        fseek(arqAtividade, atvPos + sizeof(Atividade), SEEK_SET);
                     }
-                    atvPos = ftell(arqAtv);
+                    atvPos = ftell(arqAtividade);
                 }
-                fclose(arqAtv);
+                fclose(arqAtividade);
             }
             printf("\n** CPF do instrutor alterado com sucesso! **\n");
         }
@@ -1488,20 +1669,23 @@ void alterarAtividade() {
     fread(&Atv, sizeof(Atividade), 1, arqAtividade);
 
     system("cls");
-    printf("\n--- ALTERAR DADOS DA ATIVIDADE ---");
+    printf("\n--- HITBOXE | ALTERAR DADOS DA ATIVIDADE ---");
     printf("\nNome atual: %s", Atv.nome);
     lerTextoApenasLetras("\nNovo nome da Atividade: ", Atv.nome, sizeof(Atv.nome));
+
+    printf("Foco atual: %s", Atv.foco_treino);
+    lerTextoApenasLetras("\nNovo Foco do Treino: ", Atv.foco_treino, sizeof(Atv.foco_treino));
 
     printf("Deseja alterar o Instrutor responsavel? (S/N): ");
     if (lerOpcaoSN() == 'S') {
         int idxInst = selecionarInstrutor();
         if (idxInst != -1) {
-            FILE *arqInst = fopen("instrutor.bin", "rb");
-            if (arqInst != NULL) {
+            FILE *arqInstrutor = fopen("instrutor.bin", "rb");
+            if (arqInstrutor != NULL) {
                 Instrutor tempInst;
-                fseek(arqInst, idxInst * sizeof(Instrutor), SEEK_SET);
-                fread(&tempInst, sizeof(Instrutor), 1, arqInst);
-                fclose(arqInst);
+                fseek(arqInstrutor, idxInst * sizeof(Instrutor), SEEK_SET);
+                fread(&tempInst, sizeof(Instrutor), 1, arqInstrutor);
+                fclose(arqInstrutor);
                 strcpy(Atv.cpf_instrutor, tempInst.cpf);
             }
         }
@@ -1535,7 +1719,7 @@ void alterarPacote() {
     fread(&Pc, sizeof(Pacote), 1, arqPacote);
 
     system("cls");
-    printf("\n--- ALTERAR DADOS DO PACOTE ---");
+    printf("\n--- HITBOXE | ALTERAR DADOS DO PACOTE ---");
     printf("\nNome atual: %s", Pc.nome);
     lerTextoApenasLetras("\nNovo nome do Pacote: ", Pc.nome, sizeof(Pc.nome));
 
@@ -1559,11 +1743,11 @@ void alterarPacote() {
                 val = 1;
             } else {
                 Atividade Atv;
-                FILE *arqAtv = fopen("atividade.bin", "rb");
-                if (arqAtv != NULL) {
-                    fseek(arqAtv, idxAtiv * sizeof(Atividade), SEEK_SET);
-                    fread(&Atv, sizeof(Atividade), 1, arqAtv);
-                    fclose(arqAtv);
+                FILE *arqAtividade = fopen("atividade.bin", "rb");
+                if (arqAtividade != NULL) {
+                    fseek(arqAtividade, idxAtiv * sizeof(Atividade), SEEK_SET);
+                    fread(&Atv, sizeof(Atividade), 1, arqAtividade);
+                    fclose(arqAtividade);
 
                     jaExiste = 0;
                     for (k = 0; k < Pc.qtd_atividades; k++) {
@@ -1618,7 +1802,7 @@ void alterarPlano() {
     int idAntigo = Pl.id;
 
     system("cls");
-    printf("\n--- ALTERAR DADOS DO PLANO ---");
+    printf("\n--- HITBOXE | ALTERAR DADOS DO PLANO ---");
     printf("\nNome atual: %s", Pl.nome);
     lerTextoApenasLetras("\nNovo nome do Plano: ", Pl.nome, sizeof(Pl.nome));
 
@@ -1646,34 +1830,35 @@ void alterarPlano() {
     }
     fclose(arqPlano);
 
-    FILE *arqAl = fopen("aluno.bin", "rb");
-    if (arqAl != NULL) {
+    float novoValorComDesconto = calcularDescontoPlano(Pl.tipo, Pl.valor_base);
+
+    FILE *arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno != NULL) {
         Aluno tempAl;
-        while (fread(&tempAl, sizeof(Aluno), 1, arqAl) == 1) {
+        while (fread(&tempAl, sizeof(Aluno), 1, arqAluno) == 1) {
             if (tempAl.id_plano == idAntigo && tempAl.status_matricula == 1) {
-                FILE *arqRec = fopen("recebimento.bin", "rb+");
-                if (arqRec != NULL) {
+                FILE *arqRecebimento = fopen("recebimento.bin", "rb+");
+                if (arqRecebimento != NULL) {
                     Recebimento Rec;
                     long recPos = 0;
-                    while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+                    while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
                         if (strcmp(Rec.cpf_aluno, tempAl.cpf) == 0 && Rec.status_pago == 0) {
-                            Rec.valor_cobrado = Pl.valor_base;
-                            fseek(arqRec, recPos, SEEK_SET);
-                            fwrite(&Rec, sizeof(Recebimento), 1, arqRec);
-                            fflush(arqRec);
-                            fseek(arqRec, recPos + sizeof(Recebimento), SEEK_SET);
+                            Rec.valor_cobrado = novoValorComDesconto;
+                            fseek(arqRecebimento, recPos, SEEK_SET);
+                            fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
+                            fseek(arqRecebimento, recPos + sizeof(Recebimento), SEEK_SET);
                         }
-                        recPos = ftell(arqRec);
+                        recPos = ftell(arqRecebimento);
                     }
-                    fclose(arqRec);
+                    fclose(arqRecebimento);
                 }
             }
         }
-        fclose(arqAl);
+        fclose(arqAluno);
     }
 
     ordenarPlano();
-    printf("\n** Plano alterado com sucesso e boletos pendentes atualizados! **\n");
+    printf("\n** Plano alterado com sucesso e boletos pendentes atualizados (R$ %.2f)! **\n", novoValorComDesconto);
     system("pause");
 }
 
@@ -1681,7 +1866,7 @@ void alterarPessoa() {
     int op;
     do {
         system("cls");
-        printf("\n--- ALTERAR PESSOA ---");
+        printf("\n--- HITBOXE | ALTERAR PESSOA ---");
         printf("\n1. Aluno");
         printf("\n2. Instrutor");
         printf("\n0. Voltar");
@@ -1697,7 +1882,7 @@ void alterarPessoa() {
     } while (op != 0);
 }
 
-//<=====EXCLUSÕES=====>
+//<=====EXCLUSÕES COM TRANSAÇÃO SEGURA E VALIDAÇÃO DE INTEGRIDADE=====>
 void excluirAlunoReal() {
     FILE *arqAluno, *arqTemp;
     Aluno Al;
@@ -1740,7 +1925,7 @@ void excluirAlunoReal() {
     }
 
     system("cls");
-    printf("\n--- EXCLUIR ALUNO ---");
+    printf("\n--- HITBOXE | EXCLUIR ALUNO ---");
     printf("\nNome: %s", Al.nome);
     printf("\nCPF: %s", Al.cpf);
     printf("\nTelefone: %s", Al.telefone);
@@ -1779,8 +1964,8 @@ void excluirAlunoReal() {
                 printf("\n** ERRO CRITICO: Falha durante a gravacao temporaria! Exclusao cancelada. **\n");
             }
         } else {
-            if (arqAluno) fclose(arqAluno);
-            if (arqTemp) fclose(arqTemp);
+            if (arqAluno != NULL) fclose(arqAluno);
+            if (arqTemp != NULL) fclose(arqTemp);
             printf("\n** Erro ao manipular os arquivos! **\n");
         }
     }
@@ -1825,7 +2010,7 @@ void excluirInstrutor() {
     }
 
     system("cls");
-    printf("\n--- EXCLUIR INSTRUTOR ---");
+    printf("\n--- HITBOXE | EXCLUIR INSTRUTOR ---");
     printf("\nNome: %s", Inst.nome);
     printf("\nCPF: %s", Inst.cpf);
     printf("\n-------------------");
@@ -1835,19 +2020,19 @@ void excluirInstrutor() {
         char cpfExcluir[15];
         strcpy(cpfExcluir, Inst.cpf);
 
-        FILE *fAtvRead = fopen("atividade.bin", "rb");
-        FILE *fAtvTemp = fopen("aux_atv.bin", "wb");
+        FILE *arqAtvRead = fopen("atividade.bin", "rb");
+        FILE *arqAtvTemp = fopen("aux_atv.bin", "wb");
         int okAtv = 1;
-        if (fAtvRead != NULL && fAtvTemp != NULL) {
+        if (arqAtvRead != NULL && arqAtvTemp != NULL) {
             Atividade tempAtv;
-            while (fread(&tempAtv, sizeof(Atividade), 1, fAtvRead) == 1) {
+            while (fread(&tempAtv, sizeof(Atividade), 1, arqAtvRead) == 1) {
                 if (strcmp(tempAtv.cpf_instrutor, cpfExcluir) == 0) {
                     strcpy(tempAtv.cpf_instrutor, "");
                 }
-                if (fwrite(&tempAtv, sizeof(Atividade), 1, fAtvTemp) != 1) okAtv = 0;
+                if (fwrite(&tempAtv, sizeof(Atividade), 1, arqAtvTemp) != 1) okAtv = 0;
             }
-            fclose(fAtvTemp);
-            fclose(fAtvRead);
+            fclose(arqAtvTemp);
+            fclose(arqAtvRead);
             if (okAtv) {
                 remove("atividade.bin");
                 rename("aux_atv.bin", "atividade.bin");
@@ -1882,8 +2067,8 @@ void excluirInstrutor() {
                 printf("\n** ERRO CRITICO: Falha na gravacao transacional! **\n");
             }
         } else {
-            if (arqInstrutor) fclose(arqInstrutor);
-            if (arqTemp) fclose(arqTemp);
+            if (arqInstrutor != NULL) fclose(arqInstrutor);
+            if (arqTemp != NULL) fclose(arqTemp);
             printf("\n** Erro ao manipular os arquivos! **\n");
         }
     }
@@ -1932,7 +2117,7 @@ void excluirAtividade() {
     }
 
     system("cls");
-    printf("\n--- EXCLUIR ATIVIDADE ---");
+    printf("\n--- HITBOXE | EXCLUIR ATIVIDADE ---");
     printf("\nID: %d", Atv.id);
     printf("\nNome: %s", Atv.nome);
     printf("\n-------------------");
@@ -1941,12 +2126,12 @@ void excluirAtividade() {
     if (lerOpcaoSN() == 'S') {
         int idExcluir = Atv.id;
 
-        FILE *fPcRead = fopen("pacote.bin", "rb");
-        FILE *fPcTemp = fopen("aux_pc.bin", "wb");
+        FILE *arqPcRead = fopen("pacote.bin", "rb");
+        FILE *arqPcTemp = fopen("aux_pc.bin", "wb");
         int okPc = 1;
-        if (fPcRead != NULL && fPcTemp != NULL) {
+        if (arqPcRead != NULL && arqPcTemp != NULL) {
             Pacote tempPc;
-            while (fread(&tempPc, sizeof(Pacote), 1, fPcRead) == 1) {
+            while (fread(&tempPc, sizeof(Pacote), 1, arqPcRead) == 1) {
                 int k = 0, novaQtd = 0;
                 int novasAtividades[10];
                 while (k < tempPc.qtd_atividades) {
@@ -1960,10 +2145,10 @@ void excluirAtividade() {
                 for (k = 0; k < novaQtd; k++) {
                     tempPc.ids_atividades[k] = novasAtividades[k];
                 }
-                if (fwrite(&tempPc, sizeof(Pacote), 1, fPcTemp) != 1) okPc = 0;
+                if (fwrite(&tempPc, sizeof(Pacote), 1, arqPcTemp) != 1) okPc = 0;
             }
-            fclose(fPcTemp);
-            fclose(fPcRead);
+            fclose(arqPcTemp);
+            fclose(arqPcRead);
             if (okPc) {
                 remove("pacote.bin");
                 rename("aux_pc.bin", "pacote.bin");
@@ -2041,7 +2226,7 @@ void excluirPacote() {
     }
 
     system("cls");
-    printf("\n--- EXCLUIR PACOTE ---");
+    printf("\n--- HITBOXE | EXCLUIR PACOTE ---");
     printf("\nID: %d", Pc.id);
     printf("\nNome: %s", Pc.nome);
     printf("\n-------------------");
@@ -2119,7 +2304,7 @@ void excluirPlano() {
     }
 
     system("cls");
-    printf("\n--- EXCLUIR PLANO ---");
+    printf("\n--- HITBOXE | EXCLUIR PLANO ---");
     printf("\nID: %d", Pl.id);
     printf("\nNome: %s", Pl.nome);
     printf("\n-------------------");
@@ -2162,7 +2347,7 @@ void excluirPessoa() {
     int op;
     do {
         system("cls");
-        printf("\n--- EXCLUIR PESSOA ---");
+        printf("\n--- HITBOXE | EXCLUIR PESSOA ---");
         printf("\n1. Aluno");
         printf("\n2. Instrutor");
         printf("\n0. Voltar");
@@ -2178,7 +2363,7 @@ void excluirPessoa() {
     } while (op != 0);
 }
 
-//<=====REGRAS FINANCEIRAS E MOVIMENTAÇÕES=====>
+//<=====REGRAS FINANCEIRAS E MOVIMENTAÇÕES ROBUSTAS=====>
 int existeBoleto(char cpf[], int mes, int ano) {
     Recebimento Rec;
     int val = 0, achou = 0;
@@ -2200,34 +2385,31 @@ void gerarProximoBoleto(char cpf[], int mes, int ano, float valor) {
     FILE *arqRecebimento;
     int proximo_id;
 
-   
     int idxAl = buscaAluno(cpf);
     if (idxAl != -1) {
-        FILE *fAl = fopen("aluno.bin", "rb");
-        if (fAl != NULL) {
+        FILE *arqAluno = fopen("aluno.bin", "rb");
+        if (arqAluno != NULL) {
             Aluno tempAl;
-            fseek(fAl, idxAl * sizeof(Aluno), SEEK_SET);
-            fread(&tempAl, sizeof(Aluno), 1, fAl);
-            fclose(fAl);
+            fseek(arqAluno, idxAl * sizeof(Aluno), SEEK_SET);
+            fread(&tempAl, sizeof(Aluno), 1, arqAluno);
+            fclose(arqAluno);
             
-            if (tempAl.status_matricula == 0) return; 
+            if (tempAl.status_matricula == 0) return;
 
-           
             int idxPl = buscaPlano(tempAl.id_plano);
             if (idxPl != -1) {
-                FILE *fPl = fopen("plano.bin", "rb");
-                if (fPl != NULL) {
+                FILE *arqPlano = fopen("plano.bin", "rb");
+                if (arqPlano != NULL) {
                     Plano tempPl;
-                    fseek(fPl, idxPl * sizeof(Plano), SEEK_SET);
-                    fread(&tempPl, sizeof(Plano), 1, fPl);
-                    fclose(fPl);
+                    fseek(arqPlano, idxPl * sizeof(Plano), SEEK_SET);
+                    fread(&tempPl, sizeof(Plano), 1, arqPlano);
+                    fclose(arqPlano);
 
-                    int incrementoMeses = 1; 
+                    int incrementoMeses = 1;
                     if (tempPl.tipo == 'T') incrementoMeses = 3;
                     else if (tempPl.tipo == 'S') incrementoMeses = 6;
                     else if (tempPl.tipo == 'A') incrementoMeses = 12;
 
-                
                     mes += incrementoMeses;
                     while (mes > 12) {
                         mes -= 12;
@@ -2248,7 +2430,7 @@ void gerarProximoBoleto(char cpf[], int mes, int ano, float valor) {
         Rec.mes_referencia = mes;
         Rec.ano_referencia = ano;
         Rec.valor_cobrado = valor;
-        Rec.status_pago = 0; // 
+        Rec.status_pago = 0;
         
         if (fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento) != 1) {
             printf("\n** AVISO: Falha ao gravar boleto gerado no disco! **\n");
@@ -2259,13 +2441,14 @@ void gerarProximoBoleto(char cpf[], int mes, int ano, float valor) {
 
 void efetuarMatricula() {
     int idxAluno, idxPlano, idxPacote, mesInicio, anoInicio;
+    float valorFinal;
     Aluno Al;
     Plano Pl;
     Pacote Pc;
-    FILE *arqAluno, *arqPlano, *arqPacote;
+    FILE *arqAluno, *arqPlano, *arqPacote, *arqRecebimento;
 
     system("cls");
-    printf("\n<==== EFETUAR MATRICULA ====>\n");
+    printf("\n<==== HITBOXE | EFETUAR MATRICULA ====>\n");
 
     idxAluno = selecionarAluno();
     if (idxAluno == -1) return;
@@ -2313,6 +2496,8 @@ void efetuarMatricula() {
         anoInicio = lerInteiro();
     }
 
+    valorFinal = calcularDescontoPlano(Pl.tipo, Pl.valor_base);
+
     Al.id_plano = Pl.id;
     Al.id_pacote = Pc.id;
     Al.status_matricula = 1;
@@ -2333,38 +2518,38 @@ void efetuarMatricula() {
         return;
     }
 
-    Recebimento Rec;
-    int proximo_id = proximoIdRecebimento();
-    FILE *arqRecebimento = fopen("recebimento.bin", "ab");
-    if (arqRecebimento != NULL) {
-        Rec.id_recebimento = proximo_id;
-        strcpy(Rec.cpf_aluno, Al.cpf);
-        Rec.mes_referencia = mesInicio;
-        Rec.ano_referencia = anoInicio;
-        Rec.valor_cobrado = Pl.valor_base;
-        Rec.status_pago = 0; // 0: Aberto
-        
-        if (fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento) != 1) {
-            printf("\n** AVISO: Falha ao gravar boleto inicial no disco! **\n");
+    if (!existeBoleto(Al.cpf, mesInicio, anoInicio)) {
+        int idRec = proximoIdRecebimento();
+        arqRecebimento = fopen("recebimento.bin", "ab");
+        if (arqRecebimento != NULL) {
+            Recebimento Rec;
+            Rec.id_recebimento = idRec;
+            strcpy(Rec.cpf_aluno, Al.cpf);
+            Rec.mes_referencia = mesInicio;
+            Rec.ano_referencia = anoInicio;
+            Rec.valor_cobrado = valorFinal;
+            Rec.status_pago = 0;
+            fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
+            fclose(arqRecebimento);
         }
-        fclose(arqRecebimento);
     }
 
     printf("\n[MATRICULA REGISTRADA COM SUCESSO]");
     printf("\nAluno: %s", Al.nome);
-    printf("\nPlano: %s | Valor Integral: R$ %.2f\n", Pl.nome, Pl.valor_base);
+    printf("\nPlano: %s | Valor Base: R$ %.2f | Valor Final c/ Desconto: R$ %.2f\n",
+           Pl.nome, Pl.valor_base, valorFinal);
     system("pause");
 }
 
 void efetuarCancelamento() {
     int idxAluno, idxPlano;
-    float multa = 0.0, reembolso = 0.0;
+    float multa = 0.0, reembolso = 0.0, valorEfetivo = 0.0;
     Aluno Al;
     Plano Pl;
     FILE *arqAluno, *arqPlano;
 
     system("cls");
-    printf("\n<==== CANCELAMENTO DE MATRICULA ====>\n");
+    printf("\n<==== HITBOXE | CANCELAMENTO DE MATRICULA ====>\n");
 
     idxAluno = selecionarAluno();
     if (idxAluno == -1) return;
@@ -2391,9 +2576,11 @@ void efetuarCancelamento() {
             fread(&Pl, sizeof(Plano), 1, arqPlano);
             fclose(arqPlano);
 
+            valorEfetivo = calcularDescontoPlano(Pl.tipo, Pl.valor_base);
+
             if (Pl.tipo != 'M') {
-                multa = Pl.valor_base * 0.30f;
-                reembolso = Pl.valor_base * 0.70f;
+                multa = valorEfetivo * 0.30f;
+                reembolso = valorEfetivo * 0.70f;
                 printf("\nMulta de Retencao (30%%): R$ %.2f", multa);
                 printf("\nValor Reembolsado ao Aluno (70%%): R$ %.2f\n", reembolso);
             } else {
@@ -2402,21 +2589,20 @@ void efetuarCancelamento() {
         }
     }
 
-    FILE *arqRec = fopen("recebimento.bin", "rb+");
-    if (arqRec != NULL) {
+    FILE *arqRecebimento = fopen("recebimento.bin", "rb+");
+    if (arqRecebimento != NULL) {
         Recebimento Rec;
         long recPos = 0;
-        while (fread(&Rec, sizeof(Recebimento), 1, arqRec) == 1) {
+        while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
             if (strcmp(Rec.cpf_aluno, Al.cpf) == 0 && Rec.status_pago == 0) {
                 Rec.status_pago = 2;
-                fseek(arqRec, recPos, SEEK_SET);
-                fwrite(&Rec, sizeof(Recebimento), 1, arqRec);
-                fflush(arqRec);
-                fseek(arqRec, recPos + sizeof(Recebimento), SEEK_SET);
+                fseek(arqRecebimento, recPos, SEEK_SET);
+                fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
+                fseek(arqRecebimento, recPos + sizeof(Recebimento), SEEK_SET);
             }
-            recPos = ftell(arqRec);
+            recPos = ftell(arqRecebimento);
         }
-        fclose(arqRec);
+        fclose(arqRecebimento);
     }
 
     Al.status_matricula = 0;
@@ -2443,7 +2629,7 @@ void efetuarRecebimento() {
     FILE *arqAluno, *arqRecebimento;
 
     system("cls");
-    printf("\n<==== REGISTRAR RECEBIMENTO ====>\n");
+    printf("\n<==== HITBOXE | REGISTRAR RECEBIMENTO ====>\n");
 
     idxAluno = selecionarAluno();
     if (idxAluno == -1) return;
@@ -2477,7 +2663,7 @@ void efetuarRecebimento() {
                 achou = 1;
                 val = 1;
                 
-                Rec.status_pago = 1; // Pago
+                Rec.status_pago = 1;
                 fseek(arqRecebimento, pos, 0);
                 fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento);
                 printf("\n** Boleto #%d Pago com sucesso! Valor: R$ %.2f **\n", Rec.id_recebimento, Rec.valor_cobrado);
@@ -2496,15 +2682,17 @@ void efetuarRecebimento() {
     system("pause");
 }
 
+//<=====RELATÓRIOS GERENCIAIS=====>
 void historicoPagamentosAluno() {
     int idxAluno;
     Aluno Al;
     Recebimento Rec;
     FILE *arqAluno, *arqRecebimento;
     int contador = 0;
+    char *statusStr;
 
     system("cls");
-    printf("\n<==== HISTORICO DE PAGAMENTOS POR ALUNO ====>\n");
+    printf("\n<==== HITBOXE | HISTORICO DE PAGAMENTOS POR ALUNO ====>\n");
 
     idxAluno = selecionarAluno();
     if (idxAluno == -1) return;
@@ -2517,8 +2705,8 @@ void historicoPagamentosAluno() {
 
     system("cls");
     printf("\n--------------------------------------------------");
-    printf("\n Historico de Boletos - Aluno: %s", Al.nome);
-    printf("\n CPF: %s", Al.cpf);
+    printf("\n HITBOXE - Historico de Boletos - Aluno: %s", Al.nome);
+    printf("\n CPF: %s | Peso: %s | Nivel: %s", Al.cpf, Al.categoria_peso, Al.nivel_experiencia);
     printf("\n--------------------------------------------------\n");
 
     arqRecebimento = fopen("recebimento.bin", "rb");
@@ -2531,10 +2719,13 @@ void historicoPagamentosAluno() {
     while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
         if (strcmp(Rec.cpf_aluno, Al.cpf) == 0) {
             contador++;
-            char *statusStr;
-            if (Rec.status_pago == 0) statusStr = "EM ABERTO";
-            else if (Rec.status_pago == 1) statusStr = "PAGO";
-            else statusStr = "CANCELADO";
+            if (Rec.status_pago == 0) {
+                statusStr = "EM ABERTO";
+            } else if (Rec.status_pago == 1) {
+                statusStr = "PAGO";
+            } else {
+                statusStr = "CANCELADO";
+            }
 
             printf("Boleto #%d | Mes/Ano: %02d/%d | Valor: R$ %.2f | Status: %s\n",
                    Rec.id_recebimento, Rec.mes_referencia, Rec.ano_referencia, Rec.valor_cobrado, statusStr);
@@ -2543,10 +2734,209 @@ void historicoPagamentosAluno() {
     fclose(arqRecebimento);
 
     if (contador == 0) {
-        printf("\n** Este aluno nao possui nenhum boleto gerado ou registrado. **\n");
+        printf("\n** Este aluno nao possui nenhum boleto registrado. **\n");
     }
 
     printf("\n--------------------------------------------------\n");
+    system("pause");
+}
+
+void relatorioPagamentosPeriodo() {
+    int mesIni, anoIni, mesFim, anoFim;
+    int compIni, compFim, compRec;
+    int encontrados = 0;
+    float totalRecebido = 0.0f;
+    Recebimento Rec;
+    FILE *arqRecebimento;
+    char *statusStr;
+
+    system("cls");
+    printf("\n<==== HITBOXE | EXTRATO DE PAGAMENTOS POR PERIODO ====>\n");
+
+    printf("Mes Inicial (1-12): ");
+    do {
+        mesIni = lerInteiro();
+        if (mesIni < 1 || mesIni > 12) printf("** MES INVALIDO! Digite de 1 a 12: ");
+    } while (mesIni < 1 || mesIni > 12);
+
+    printf("Ano Inicial (ex: 2026): ");
+    anoIni = lerInteiro();
+
+    printf("Mes Final (1-12): ");
+    do {
+        mesFim = lerInteiro();
+        if (mesFim < 1 || mesFim > 12) printf("** MES INVALIDO! Digite de 1 a 12: ");
+    } while (mesFim < 1 || mesFim > 12);
+
+    printf("Ano Final (ex: 2027): ");
+    anoFim = lerInteiro();
+
+    compIni = anoIni * 100 + mesIni;
+    compFim = anoFim * 100 + mesFim;
+
+    if (compIni > compFim) {
+        printf("\n** ERRO: A data inicial nao pode ser maior que a data final! **\n");
+        system("pause");
+        return;
+    }
+
+    arqRecebimento = fopen("recebimento.bin", "rb");
+    if (arqRecebimento == NULL) {
+        printf("\n** Nenhum registro financeiro encontrado no sistema. **\n");
+        system("pause");
+        return;
+    }
+
+    printf("\n---------------------------------------------------------------");
+    printf("\n HITBOXE - EXTRATO (%02d/%d a %02d/%d)", mesIni, anoIni, mesFim, anoFim);
+    printf("\n---------------------------------------------------------------\n");
+
+    while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
+        compRec = Rec.ano_referencia * 100 + Rec.mes_referencia;
+        if (compRec >= compIni && compRec <= compFim) {
+            encontrados++;
+            if (Rec.status_pago == 0) {
+                statusStr = "EM ABERTO";
+            } else if (Rec.status_pago == 1) {
+                statusStr = "PAGO";
+                totalRecebido += Rec.valor_cobrado;
+            } else {
+                statusStr = "CANCELADO";
+            }
+
+            printf("Boleto #%d | CPF: %s | Ref: %02d/%d | R$ %.2f | %s\n",
+                   Rec.id_recebimento, Rec.cpf_aluno, Rec.mes_referencia, Rec.ano_referencia, Rec.valor_cobrado, statusStr);
+        }
+    }
+    fclose(arqRecebimento);
+
+    if (encontrados == 0) {
+        printf("\n** Nenhum boleto encontrado neste periodo. **\n");
+    } else {
+        printf("\n---------------------------------------------------------------");
+        printf("\nTotal de Boletos: %d | Total Efetivamente Pago: R$ %.2f", encontrados, totalRecebido);
+    }
+    printf("\n---------------------------------------------------------------\n");
+    system("pause");
+}
+
+void relatorioAlunosPorStatus() {
+    int filtroStatus, encontrados = 0;
+    Aluno Al;
+    FILE *arqAluno;
+    char *tituloStatus;
+
+    system("cls");
+    printf("\n<==== HITBOXE | RELATORIO DE ALUNOS POR STATUS ====>\n");
+    printf("1. Listar apenas Matricula ATIVA\n");
+    printf("2. Listar apenas Matricula INATIVA\n");
+    printf("Opcao: ");
+    filtroStatus = lerInteiro();
+
+    if (filtroStatus != 1 && filtroStatus != 2) {
+        printf("\n** Opcao invalida! **\n");
+        system("pause");
+        return;
+    }
+
+    if (filtroStatus == 2) {
+        filtroStatus = 0;
+        tituloStatus = "INATIVOS";
+    } else {
+        tituloStatus = "ATIVOS";
+    }
+
+    arqAluno = fopen("aluno.bin", "rb");
+    if (arqAluno == NULL) {
+        printf("\n** Nenhum aluno cadastrado no sistema. **\n");
+        system("pause");
+        return;
+    }
+
+    printf("\n---------------------------------------------------------------");
+    printf("\n HITBOXE - ALUNOS (%s)", tituloStatus);
+    printf("\n---------------------------------------------------------------\n");
+
+    while (fread(&Al, sizeof(Aluno), 1, arqAluno) == 1) {
+        if (Al.status_matricula == filtroStatus) {
+            encontrados++;
+            printf("Nome: %s | CPF: %s | Peso: %s | Nivel: %s\n",
+                   Al.nome, Al.cpf, Al.categoria_peso, Al.nivel_experiencia);
+        }
+    }
+    fclose(arqAluno);
+
+    if (encontrados == 0) {
+        printf("\n** Nenhum aluno encontrado com este status. **\n");
+    } else {
+        printf("\nTotal listado: %d aluno(s).", encontrados);
+    }
+    printf("\n---------------------------------------------------------------\n");
+    system("pause");
+}
+
+void relatorioInadimplentesMesAno() {
+    int mes, ano, encontrados = 0;
+    float totalAberto = 0.0f;
+    Recebimento Rec;
+    Aluno Al;
+    FILE *arqRecebimento, *arqAluno;
+    int idxAl;
+
+    system("cls");
+    printf("\n<==== HITBOXE | RELATORIO DE INADIMPLENTES ====>\n");
+
+    printf("Mes de Referencia (1-12): ");
+    do {
+        mes = lerInteiro();
+        if (mes < 1 || mes > 12) printf("** MES INVALIDO! Digite de 1 a 12: ");
+    } while (mes < 1 || mes > 12);
+
+    printf("Ano de Referencia (ex: 2026): ");
+    ano = lerInteiro();
+
+    arqRecebimento = fopen("recebimento.bin", "rb");
+    if (arqRecebimento == NULL) {
+        printf("\n** Nenhum registro financeiro encontrado no sistema. **\n");
+        system("pause");
+        return;
+    }
+
+    printf("\n---------------------------------------------------------------");
+    printf("\n HITBOXE - BOLETOS EM ABERTO (%02d/%d)", mes, ano);
+    printf("\n---------------------------------------------------------------\n");
+
+    while (fread(&Rec, sizeof(Recebimento), 1, arqRecebimento) == 1) {
+        if (Rec.mes_referencia == mes && Rec.ano_referencia == ano && Rec.status_pago == 0) {
+            encontrados++;
+            totalAberto += Rec.valor_cobrado;
+
+            char nomeAluno[100];
+            strcpy(nomeAluno, "Aluno Nao Localizado");
+            idxAl = buscaAluno(Rec.cpf_aluno);
+            if (idxAl != -1) {
+                arqAluno = fopen("aluno.bin", "rb");
+                if (arqAluno != NULL) {
+                    fseek(arqAluno, idxAl * sizeof(Aluno), SEEK_SET);
+                    fread(&Al, sizeof(Aluno), 1, arqAluno);
+                    fclose(arqAluno);
+                    strcpy(nomeAluno, Al.nome);
+                }
+            }
+
+            printf("Boleto #%d | Aluno: %s (CPF: %s) | Valor: R$ %.2f\n",
+                   Rec.id_recebimento, nomeAluno, Rec.cpf_aluno, Rec.valor_cobrado);
+        }
+    }
+    fclose(arqRecebimento);
+
+    if (encontrados == 0) {
+        printf("\n** Nenhum boleto em aberto encontrado para %02d/%d! **\n", mes, ano);
+    } else {
+        printf("\n---------------------------------------------------------------");
+        printf("\nTotal de Inadimplentes: %d | Valor Total Pendente: R$ %.2f", encontrados, totalAberto);
+    }
+    printf("\n---------------------------------------------------------------\n");
     system("pause");
 }
 
@@ -2555,7 +2945,7 @@ void gerenciarPessoas() {
     int op;
     do {
         system("cls");
-        printf("\n--- GERENCIAR PESSOAS ---");
+        printf("\n--- HITBOXE | GERENCIAR PESSOAS ---");
         printf("\n1. Cadastrar Aluno");
         printf("\n2. Cadastrar Instrutor");
         printf("\n3. Consultar Pessoas");
@@ -2581,7 +2971,7 @@ void gerenciarAtividades() {
     int op;
     do {
         system("cls");
-        printf("\n--- GERENCIAR ATIVIDADES ---");
+        printf("\n--- HITBOXE | GERENCIAR ATIVIDADES ---");
         printf("\n1. Cadastrar Atividade");
         printf("\n2. Consultar Atividades");
         printf("\n3. Alterar Atividade");
@@ -2605,7 +2995,7 @@ void gerenciarPacotes() {
     int op;
     do {
         system("cls");
-        printf("\n--- GERENCIAR PACOTES ---");
+        printf("\n--- HITBOXE | GERENCIAR PACOTES ---");
         printf("\n1. Cadastrar Pacote");
         printf("\n2. Consultar Pacotes");
         printf("\n3. Alterar Pacote");
@@ -2629,7 +3019,7 @@ void gerenciarPlanos() {
     int op;
     do {
         system("cls");
-        printf("\n--- GERENCIAR PLANOS ---");
+        printf("\n--- HITBOXE | GERENCIAR PLANOS ---");
         printf("\n1. Cadastrar Plano");
         printf("\n2. Consultar Planos");
         printf("\n3. Alterar Plano");
@@ -2653,11 +3043,10 @@ void gerenciarMovimentacoes() {
     int op;
     do {
         system("cls");
-        printf("\n--- MOVIMENTACOES E FINANCEIRO ---");
+        printf("\n--- HITBOXE | MOVIMENTACOES E FINANCEIRO ---");
         printf("\n1. Efetuar Matricula");
         printf("\n2. Efetuar Cancelamento");
         printf("\n3. Registrar Recebimento");
-        printf("\n4. Historico de Pagamentos por Aluno");
         printf("\n0. Voltar ao Menu Principal");
         printf("\nOpcao: ");
         op = lerInteiro();
@@ -2666,7 +3055,30 @@ void gerenciarMovimentacoes() {
             case 1: efetuarMatricula(); break;
             case 2: efetuarCancelamento(); break;
             case 3: efetuarRecebimento(); break;
-            case 4: historicoPagamentosAluno(); break;
+            case 0: break;
+            default: printf("\nOpcao invalida!\n"); system("pause");
+        }
+    } while (op != 0);
+}
+
+void gerenciarRelatorios() {
+    int op;
+    do {
+        system("cls");
+        printf("\n--- HITBOXE | RELATORIOS ---");
+        printf("\n1. Historico de Pagamentos por Aluno");
+        printf("\n2. Extrato de Pagamentos por Periodo");
+        printf("\n3. Relatorio de Alunos por Status");
+        printf("\n4. Relatorio de Inadimplentes (Mes/Ano)");
+        printf("\n0. Voltar ao Menu Principal");
+        printf("\nOpcao: ");
+        op = lerInteiro();
+
+        switch (op) {
+            case 1: historicoPagamentosAluno(); break;
+            case 2: relatorioPagamentosPeriodo(); break;
+            case 3: relatorioAlunosPorStatus(); break;
+            case 4: relatorioInadimplentesMesAno(); break;
             case 0: break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
@@ -2675,20 +3087,24 @@ void gerenciarMovimentacoes() {
 
 int main() {
     int opcaoPrincipal;
-	
+    
+    popularDadosIniciais();
+
     do {
         menuPrincipal();
         opcaoPrincipal = lerInteiro();
-		
+
         switch (opcaoPrincipal) {
             case 1: gerenciarPessoas(); break;
             case 2: gerenciarAtividades(); break;
             case 3: gerenciarPacotes(); break;
             case 4: gerenciarPlanos(); break;
             case 5: gerenciarMovimentacoes(); break;
-            case 0: printf("\nEncerrando o sistema...\n"); break;
+            case 6: gerenciarRelatorios(); break;
+            case 0: printf("\nEncerrando o sistema HITBOXE...\n"); break;
             default: printf("\nOpcao invalida!\n"); system("pause");
         }
     } while (opcaoPrincipal != 0);
+
     return 0;
 }
