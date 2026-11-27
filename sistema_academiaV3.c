@@ -189,11 +189,11 @@ char lerOpcaoSN() {
     } while (1);
 }
 
-/* Substitui arquivos sem apagar o original antes de confirmar o novo. */
+
 int substituirArquivoSeguro(const char *temporario, const char *original, const char *backup) {
     remove(backup);
     if (rename(original, backup) != 0) {
-        /* Se o original nao existe, ainda podemos instalar o temporario. */
+       
         if (rename(temporario, original) == 0) return 1;
         return 0;
     }
@@ -201,7 +201,7 @@ int substituirArquivoSeguro(const char *temporario, const char *original, const 
         remove(backup);
         return 1;
     }
-    rename(backup, original); /* tenta restaurar o original */
+    rename(backup, original);
     return 0;
 }
 
@@ -524,7 +524,7 @@ int menuPrincipal() {
     return 0;
 }
 
-//<=====SELEÇÃO / BUSCA INTERATIVA=====>
+//<=====SELEÇAO / BUSCA INTERATIVA=====>
 int selecionarAluno() {
     FILE *arqAluno = fopen("aluno.bin", "rb");
     Aluno Al;
@@ -1324,7 +1324,7 @@ void consultarPessoas() {
     } while (op != 0);
 }
 
-//<=====ALTERAÇÕES=====>
+//<=====ALTERACOES=====>
 void alterarAluno() {
     int pos = selecionarAluno();
     if (pos == -1) return;
@@ -1678,7 +1678,7 @@ void alterarPessoa() {
     } while (op != 0);
 }
 
-//<=====EXCLUSÕES COM TRANSAÇÃO SEGURA E VALIDAÇÃO DE INTEGRIDADE=====>
+//<=====EXCLUSOES=====>
 void excluirAlunoReal() {
     FILE *arqAluno, *arqTemp;
     Aluno Al;
@@ -2154,7 +2154,7 @@ void excluirPessoa() {
     } while (op != 0);
 }
 
-//<=====REGRAS FINANCEIRAS E MOVIMENTAÇÕES=====>
+//<=====REGRAS FINANCEIRAS E MOVIMENTACOES=====>
 int existeBoleto(char cpf[], int mes, int ano) {
     Recebimento Rec;
     int val = 0, achou = 0;
@@ -2172,7 +2172,7 @@ int existeBoleto(char cpf[], int mes, int ano) {
 }
 
 void gerarProximoBoleto(char cpf[], int mes, int ano, float valor) {
-    (void)valor; /* mantido para compatibilidade com as chamadas existentes */
+    (void)valor;
     Recebimento Rec; FILE *arqRecebimento; int incrementoMeses = 1;
     int idxAl = buscaAluno(cpf); if (idxAl == -1) return;
     FILE *arqAluno = fopen("aluno.bin", "rb"); if (arqAluno == NULL) return;
@@ -2193,7 +2193,7 @@ void gerarProximoBoleto(char cpf[], int mes, int ano, float valor) {
     if (arqRecebimento == NULL) { printf("\n** AVISO: Nao foi possivel abrir o arquivo para gerar a proxima cobranca. **\n"); return; }
     Rec.id_recebimento = proximoIdRecebimento(); strcpy(Rec.cpf_aluno, cpf);
     Rec.mes_referencia = mes; Rec.ano_referencia = ano;
-    /* Renovacao usa o preco vigente do plano, sem alterar boletos ja emitidos. */
+  
     Rec.valor_cobrado = calcularDescontoPlano(tempPl.tipo, tempPl.valor_base);
     Rec.status_pago = 0;
     if (fwrite(&Rec, sizeof(Recebimento), 1, arqRecebimento) != 1) printf("\n** AVISO: Falha ao gravar a proxima cobranca! **\n");
