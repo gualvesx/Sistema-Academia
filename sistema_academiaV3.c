@@ -109,7 +109,7 @@ void relatorioPagamentosPeriodo();
 void relatorioAlunosPorStatus();
 void relatorioInadimplentesMesAno();
 
-//<=============FUNÇÕES DE VALIDAÇÃO E LEITURA=============>
+//<=============FUNCOES DE VALIDAÇAO E LEITURA=============>
 
 static int lerLinha(char texto[], size_t tamanho) {
     if (fgets(texto, (int)tamanho, stdin) == NULL) { texto[0] = '\0'; return 0; }
@@ -376,7 +376,7 @@ int proximoIdRecebimento() {
     return maior + 1;
 }
 
-//<=============ORDENAÇÃO=============>
+//<=============ORDENACAO=============>
 void ordenarAluno() {
     FILE *arqAluno = fopen("aluno.bin", "rb+");
     Aluno Al, Ali;
@@ -2474,7 +2474,7 @@ void exibirBoletosEmAberto() {
     system("pause");
 }
 
-//<=====RELATÓRIOS GERENCIAIS=====>
+//<=====RELATORIOS GERENCIAIS=====>
 void historicoPagamentosAluno() {
     int idxAluno;
     Aluno Al;
